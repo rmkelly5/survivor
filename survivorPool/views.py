@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from . models import Pick
 from django.urls import reverse_lazy
+from .forms import PostForm
 
 # Create your views here.
 #def index(request):
@@ -15,8 +16,9 @@ class HomeView(ListView):
 
 class AddPickView(CreateView):
     model = Pick
+    form_class = PostForm
     template_name = 'add_pick.html'
-    fields = ['team', 'user_name', 'week']
+    #fields = ['team', 'user_name', 'week']
 
 class PickDetailView(DetailView):
     model = Pick

@@ -4,11 +4,19 @@
 
 {% if user.is_authenticated %}
     <h1>Choose Your Pick...</h1>
+    <div class="form-group">
     <form method="POST">
         {% csrf_token %}
         {{ form.as_p }}
     <button class="btn btn-primary">Pick</button>
     <br/><br/>
+    </div>
+
+    <script>
+         var name = "{{ user.id }}";
+         document.getElementById("user").value = name;
+
+    </script>
     <a href="{% url 'home' %}" class="btn btn-secondary">Back</a>
 {% else %}
 
