@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +20,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#s%d)#q*$p#z!lofhyaz=3wi7ra&p5lin5_rhsnbie_j2wqam8'
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('1', 'true', 't', 'yes')
 
-ALLOWED_HOSTS = ['*']
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-#s%d)#q*$p#z!lofhyaz=3wi7ra&p5lin5_rhsnbie_j2wqam8')
+
+# Enforce SECRET_KEY in production
+if not DEBUG and SECRET_KEY == 'django-insecure-#s%d)#q*$p#z!lofhyaz=3wi7ra&p5lin5_rhsnbie_j2wqam8':
+    raise ValueError(
+        'DJANGO_SECRET_KEY environment variable must be set in production. '
+        'Generate a secure key and set it before deployment.'
+    )
+
+# ALLOWED_HOSTS configuration
+# For Replit: Must be set to '*' via DJANGO_ALLOWED_HOSTS environment variable due to dynamic proxy
+# For non-Replit production: Set specific allowed domains via DJANGO_ALLOWED_HOSTS
+# Default is localhost for security
+allowed_hosts_str = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_str.split(',')]
 
 
 # Application definition
