@@ -40,6 +40,12 @@ if not DEBUG and SECRET_KEY == 'django-insecure-#s%d)#q*$p#z!lofhyaz=3wi7ra&p5li
 allowed_hosts_str = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_str.split(',')]
 
+# CSRF trusted origins for Replit
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.replit.dev',
+    'https://*.repl.co',
+]
+
 
 # Application definition
 
