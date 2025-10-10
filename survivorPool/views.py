@@ -32,7 +32,11 @@ class AddPickView(CreateView):
     model = Pick
     form_class = PostForm
     template_name = 'add_pick.html'
-    #fields = ['team', 'user_name', 'week']
+    
+    def get_form_kwargs(self):
+        kwargs = super(AddPickView, self).get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 class PickDetailView(DetailView):
     model = Pick
@@ -41,7 +45,48 @@ class PickDetailView(DetailView):
 class UpdatePickView(UpdateView):
     model = Pick
     template_name = 'update_pick.html'
-    fields = ['team']
+    form_class = None
+    
+    def get_form_class(self):
+        from .forms import UpdatePickForm
+        return UpdatePickForm
+    
+    def get_form_kwargs(self):
+        kwargs = super(UpdatePickView, self).get_form_kwargs()
+        pick = self.get_object()
+        kwargs['user'] = pick.user_name
+        kwargs['current_pick'] = pick
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pick = self.get_object()
+        context['is_locked'] = self.is_week_locked(pick.week)
+        return context
+    
+    def form_valid(self, form):
+        pick = self.get_object()
+        
+        # Check if week is locked
+        if self.is_week_locked(pick.week):
+            form.add_error(None, f"Week {pick.week} is locked. Picks cannot be changed after Sunday morning EST.")
+            return self.form_invalid(form)
+        
+        return super().form_valid(form)
+    
+    def is_week_locked(self, week_number):
+        """Check if the given week is locked (past Sunday morning EST)"""
+        import pytz
+        est = pytz.timezone('US/Eastern')
+        now = datetime.datetime.now(est)
+        
+        # Calculate the Sunday of the given week
+        season_start = datetime.datetime(2025, 9, 5, tzinfo=est)
+        days_to_week = (week_number - 1) * 7
+        week_sunday = season_start + datetime.timedelta(days=days_to_week + 2)
+        week_sunday = week_sunday.replace(hour=9, minute=0, second=0, microsecond=0)
+        
+        return now >= week_sunday
 
 class DeletePickView(DeleteView):
     model = Pick

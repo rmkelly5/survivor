@@ -4,11 +4,28 @@
 
 {% if user.is_authenticated %}
     <h1>Update Pick for Week {{ pick.week }}</h1>
+    
+    {% if is_locked %}
+        <div class="alert alert-warning" role="alert">
+            <strong>⚠️ Week {{ pick.week }} is Locked!</strong><br>
+            Picks cannot be changed after Sunday morning 9 AM EST.
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            <strong>ℹ️ Reminder:</strong> You can change this pick until Sunday morning 9 AM EST of Week {{ pick.week }}. Once locked, no changes can be made.
+        </div>
+    {% endif %}
+    
     <form method="POST">
         {% csrf_token %}
         {{ form.as_p }}
-    <button class="btn btn-primary">Submit</button>
-    <br/><br/>
+        {% if not is_locked %}
+            <button class="btn btn-primary">Submit</button>
+        {% else %}
+            <button class="btn btn-primary" disabled>Locked - Cannot Edit</button>
+        {% endif %}
+    </form>
+    <br/>
     <a href="{% url 'home' %}" class="btn btn-secondary">Back</a>
 {% else %}
 
