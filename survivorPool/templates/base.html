@@ -22,9 +22,9 @@
                   <a class="nav-link" href="{% url 'add_pick' %}">Make A Pick</a>
                 </li>
                 <li class="nav-item">
-                  <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                  <form method="post" action="{% url 'logout' %}" style="display: inline; margin: 0;">
                     {% csrf_token %}
-                    <button type="submit" class="nav-link btn btn-link" style="padding: 0; margin: 0; background: none; border: none; color: inherit; font: inherit;">
+                    <button type="submit" class="nav-link" style="padding: .5rem 1rem; margin: 0; background: none; border: none; color: #fff !important; font-weight: 600; text-decoration: none; display: inline-block; cursor: pointer;">
                       Logout
                     </button>
                   </form>
