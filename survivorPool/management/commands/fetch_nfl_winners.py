@@ -28,24 +28,37 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("NFL regular season hasn't started yet."))
             return
 
-        updated_count = 0
+        wins_updated = 0
+        losses_updated = 0
+        
         for result in results:
             winner_team_name = result["winner"]
+            loser_team_name = result["loser"]
             
-            # Find the winning team
+            # Update winning team picks to is_win=True
             try:
                 winning_team = Team.objects.get(team_name=winner_team_name)
-                
-                # Update all picks for this team in this week to is_win=True
-                picks_updated = Pick.objects.filter(
+                wins_count = Pick.objects.filter(
                     team=winning_team,
                     week=current_week
                 ).update(is_win=True)
-                
-                updated_count += picks_updated
+                wins_updated += wins_count
                 
             except Team.DoesNotExist:
-                self.stdout.write(self.style.WARNING(f"Team '{winner_team_name}' not found in database"))
-                continue
+                self.stdout.write(self.style.WARNING(f"Winning team '{winner_team_name}' not found in database"))
+            
+            # Update losing team picks to is_win=False
+            try:
+                losing_team = Team.objects.get(team_name=loser_team_name)
+                losses_count = Pick.objects.filter(
+                    team=losing_team,
+                    week=current_week
+                ).update(is_win=False)
+                losses_updated += losses_count
+                
+            except Team.DoesNotExist:
+                self.stdout.write(self.style.WARNING(f"Losing team '{loser_team_name}' not found in database"))
 
-        self.stdout.write(self.style.SUCCESS(f"Updated {updated_count} picks as wins for Week {current_week}"))
+        self.stdout.write(self.style.SUCCESS(
+            f"Week {current_week} results: {wins_updated} picks marked as WINS, {losses_updated} picks marked as LOSSES"
+        ))
