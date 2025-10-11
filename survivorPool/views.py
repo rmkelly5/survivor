@@ -169,31 +169,50 @@ def allPicksView(request):
     df = buildPickDataFrame(max_week=current_nfl_week)
 
     #tweak dataframe to create a view of all picks up to current week sorted by week chronologically
-    # df['Combined'] = df['Team'] + '_' + df['IsWin'].astype(str)
     df = df.sort_values(by=['Week'])
-    df['Pick_Display'] = df.apply(
-    lambda row: f"{row['Team']} (W)" if row['IsWin'] == True else (f"{row['Team']} (L)" if row['IsWin'] == False else f"{row['Team']} (TBD)"), axis=1)
-    df = df.pivot(index=['User Name'], columns='Week', values='Pick_Display')
-    df = df.rename_axis(columns=None).reset_index()
-    df = df.fillna("Not Picked")
-
-    df = df.rename(columns=lambda x: f"Week {x}" if isinstance(x, int) else x)
-
-    print(df)
+    
+    # Create pivot with team names and status
+    df['status'] = df['IsWin']  # Keep status for styling reference
+    df_display = df.pivot(index=['User Name'], columns='Week', values='Team')
+    df_status = df.pivot(index=['User Name'], columns='Week', values='status')
+    
+    df_display = df_display.rename_axis(columns=None).reset_index()
+    df_status = df_status.rename_axis(columns=None).reset_index()
+    
+    df_display = df_display.fillna("")
+    df_display = df_display.rename(columns=lambda x: f"Week {x}" if isinstance(x, int) else x)
+    df_status = df_status.rename(columns=lambda x: f"Week {x}" if isinstance(x, int) else x)
+    
+    print(df_display)
 
     # Style function to add background colors based on pick result
-    def style_picks(val):
-        if '(W)' in str(val):
-            return 'background-color: #d4edda; color: #155724;'  # Green for wins
-        elif '(L)' in str(val):
-            return 'background-color: #f8d7da; color: #721c24;'  # Red for losses
-        elif '(TBD)' in str(val):
-            return 'background-color: #fff3cd; color: #856404;'  # Yellow for TBD
-        else:
-            return ''  # No style for "Not Picked"
+    def style_cell(val):
+        # Get the row index and column from the cell position
+        row_idx = val.name
+        results = []
+        
+        for col in df_display.columns:
+            cell_val = df_display.loc[row_idx, col]
+            
+            if col == 'User Name' or not cell_val or cell_val == "":
+                results.append('')
+            else:
+                # Get the status for this cell
+                status = df_status.loc[row_idx, col]
+                
+                if pd.isna(status):
+                    results.append('background-color: #fff3cd; color: #856404;')  # Yellow for TBD
+                elif status == True:
+                    results.append('background-color: #d4edda; color: #155724;')  # Green for wins
+                elif status == False:
+                    results.append('background-color: #f8d7da; color: #721c24;')  # Red for losses
+                else:
+                    results.append('')
+        
+        return results
 
-    # Apply styling to all columns except 'User Name'
-    styled_df = df.style.map(style_picks, subset=[col for col in df.columns if col != 'User Name'])
+    # Apply styling
+    styled_df = df_display.style.apply(style_cell, axis=1)
 
     context = {
         'df': styled_df.to_html(classes=["table-bordered", "table-striped", "table-hover"], index=False),
