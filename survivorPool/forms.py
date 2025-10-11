@@ -40,14 +40,14 @@ class PostForm(forms.ModelForm):
         super(PostForm, self).__init__(*args, **kwargs)
 
         # Filter out teams that this user has already picked this season
-        if self.user:
+        if self.user and self.user.is_authenticated:
             used_team_ids = Pick.objects.filter(
                 user_name=self.user).values_list('team_id', flat=True)
             available_teams = Team.objects.exclude(id__in=used_team_ids)
             self.fields['team'].queryset = available_teams
-            
-            # Customize team display to show matchup and odds
-            self.fields['team'].label_from_instance = self.team_label
+        
+        # Customize team display to show matchup and odds (always show even if not logged in)
+        self.fields['team'].label_from_instance = self.team_label
 
     def team_label(self, team):
         """Custom label showing team with matchup and betting odds"""
