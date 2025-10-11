@@ -46,6 +46,14 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.repl.co',
 ]
 
+# CSRF and Session Cookie settings for Replit iframe environment
+# In Replit, the app runs inside an iframe, which requires special cookie settings
+# SameSite='None' REQUIRES Secure=True for modern browsers to accept the cookies
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True  # Required for SameSite='None'
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True  # Required for SameSite='None'
+
 
 # Application definition
 

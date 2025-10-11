@@ -109,6 +109,10 @@ The application automatically uses these PostgreSQL environment variables (provi
     - Development workflow sets to '*' (required for Replit proxy)
     - Default is 'localhost,127.0.0.1' for security
     - For production on Replit, must be set to '*' due to dynamic proxy routing
+- **CSRF & Session Cookies for Replit iframe:**
+  - Replit runs apps inside an iframe, requiring special cookie settings
+  - CSRF_COOKIE_SAMESITE = 'None' and SESSION_COOKIE_SAMESITE = 'None' (allows cookies in iframe)
+  - CSRF_COOKIE_SECURE = True and SESSION_COOKIE_SECURE = True (required for SameSite='None')
 
 ## Database Models
 - **Pick:** User's weekly NFL team picks
