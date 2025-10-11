@@ -79,9 +79,9 @@ class PostForm(forms.ModelForm):
         
         label_parts.append(")")
         
-        # Add game time if available
+        # Add game time if available (stored in EST)
         if team.game_time:
-            game_time_str = team.game_time.strftime("%a %I:%M %p")
+            game_time_str = team.game_time.strftime("%a %I:%M %p EST")
             label_parts.append(f"- {game_time_str}")
         
         return " ".join(label_parts)

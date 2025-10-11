@@ -3,6 +3,7 @@ from survivorPool.models import Team
 import requests
 from datetime import datetime
 import os
+import pytz
 
 class Command(BaseCommand):
     help = 'Fetches NFL matchups and betting odds from The Odds API and updates Team records'
@@ -54,6 +55,10 @@ class Command(BaseCommand):
             updated_count = 0
             skipped_count = 0
             
+            # Get current time in EST
+            est_tz = pytz.timezone('US/Eastern')
+            current_time_est = datetime.now(est_tz)
+            
             for game in games:
                 home_team_name = self.extract_team_nickname(game['home_team'])
                 away_team_name = self.extract_team_nickname(game['away_team'])
@@ -70,7 +75,20 @@ class Command(BaseCommand):
                     skipped_count += 1
                     continue
                 
-                commence_time = datetime.fromisoformat(game['commence_time'].replace('Z', '+00:00'))
+                # Parse game time and convert to EST
+                commence_time_utc = datetime.fromisoformat(game['commence_time'].replace('Z', '+00:00'))
+                commence_time = commence_time_utc.astimezone(est_tz)
+                
+                # Skip games that already happened
+                if commence_time < current_time_est:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f'Skipping past game: {away_team_name} @ {home_team_name} '
+                            f'({commence_time.strftime("%a %I:%M %p")} EST)'
+                        )
+                    )
+                    skipped_count += 1
+                    continue
                 
                 spread = None
                 home_is_favorite = False
@@ -121,9 +139,10 @@ class Command(BaseCommand):
                 
                 updated_count += 1
                 favorite_symbol = "⭐" if home_is_favorite else ""
+                game_time_str = commence_time.strftime("%a %I:%M %p EST")
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'Updated: {away_team_name} @ {home_team_name} {favorite_symbol} (Week {week})'
+                        f'Updated: {away_team_name} @ {home_team_name} {favorite_symbol} - {game_time_str} (Week {week})'
                     )
                 )
             
