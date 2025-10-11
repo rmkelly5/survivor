@@ -5,10 +5,17 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 
 ## Project Status
 - **Last Updated:** October 11, 2025
-- **Status:** Fully functional with TBD/WIN/LOSS status display
-- **Current State:** Application is running with NFL API integration
+- **Status:** Production-ready with PostgreSQL database
+- **Current State:** Application is running with NFL API integration and PostgreSQL backend
 
 ## Recent Changes
+- October 11, 2025: Migrated to PostgreSQL for production readiness
+  - Successfully migrated from SQLite to PostgreSQL (68 objects migrated)
+  - Installed psycopg2-binary for PostgreSQL connectivity
+  - Updated settings.py to use PostgreSQL environment variables
+  - All data preserved: 6 users, 32 teams, 12 picks (5 wins, 2 losses, 5 TBD)
+  - Application tested and verified working with PostgreSQL
+  
 - October 11, 2025: Implemented TBD status and NFL API integration
   - Modified Pick model's `is_win` field to support tri-state values (None/True/False)
   - Added TBD status display for games that haven't been played yet
@@ -27,8 +34,9 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 ## Technology Stack
 - **Framework:** Django 5.2.7
 - **Language:** Python 3.12
-- **Database:** SQLite (db.sqlite3)
+- **Database:** PostgreSQL (Replit-managed)
 - **Key Dependencies:**
+  - psycopg2-binary: PostgreSQL adapter for Python
   - django-tables2: For displaying pick tables
   - django-background-tasks: For background job processing
   - pandas: For data manipulation
@@ -80,6 +88,15 @@ Before deploying to production on Replit, you must set these environment variabl
 1. **DJANGO_SECRET_KEY**: Generate a secure secret key (e.g., using `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
 2. **DJANGO_ALLOWED_HOSTS**: Set to `*` for Replit deployments (required for dynamic proxy routing)
 3. **DJANGO_DEBUG**: Set to `False` or leave unset (defaults to False for security)
+
+### PostgreSQL Database Environment Variables
+The application automatically uses these PostgreSQL environment variables (provided by Replit):
+- **PGDATABASE**: Database name
+- **PGUSER**: Database user
+- **PGPASSWORD**: Database password
+- **PGHOST**: Database host
+- **PGPORT**: Database port
+- **DATABASE_URL**: Full connection string (alternative to individual vars)
 
 ## Configuration Notes
 - Database migrations have been applied
