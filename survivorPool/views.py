@@ -136,19 +136,22 @@ def modelToDataFrame(request):
     ''' Builds a dataframe to display the league leaderboard'''
     df = buildPickDataFrame()
     
-    #create leaderboard Note: will only work once there is a pick for first week
-    # Handle NULL values - only count True wins, not False or None
-    df['Win Count'] = df[df["IsWin"] == True].groupby("User Name")["IsWin"].transform("sum")
-    df['Win Count'] = df['Win Count'].fillna(0).astype(int)
-    dfLeaderBoard = df.loc[df['Week'] == 1, ['User Name', 'Win Count']]
-    dfLeaderBoard.sort_values('Win Count')
+    # Create leaderboard with correct win counts
+    # Convert NULL to False for counting, then count only True wins per user
+    df['IsWinBool'] = df['IsWin'].fillna(False)
+    win_counts = df[df['IsWinBool'] == True].groupby('User Name')['IsWinBool'].count().reset_index()
+    win_counts.columns = ['User Name', 'Win Count']
+    
+    # Get all unique users (including those with no wins)
+    all_users = df[['User Name']].drop_duplicates()
+    dfLeaderBoard = all_users.merge(win_counts, on='User Name', how='left')
+    dfLeaderBoard['Win Count'] = dfLeaderBoard['Win Count'].fillna(0).astype(int)
+    dfLeaderBoard = dfLeaderBoard.sort_values('Win Count', ascending=False)
 
     print(dfLeaderBoard)
 
     context = {
         'df': dfLeaderBoard.to_html(classes=["table-bordered", "table-striped", "table-hover"], index=False),
-        
-
     }
 
     return render(request, 'league_leaderboard.html', context)

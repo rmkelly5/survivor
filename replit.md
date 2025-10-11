@@ -4,11 +4,18 @@
 This is a Django-based NFL Survivor Pool web application where users can make weekly NFL picks for a survivor pool competition. Users select one team per week, and if that team wins, they advance to the next week. If the team loses, they're eliminated from the pool.
 
 ## Project Status
-- **Last Updated:** October 10, 2025
-- **Status:** Successfully imported and configured for Replit environment
-- **Current State:** Application is running and functional
+- **Last Updated:** October 11, 2025
+- **Status:** Fully functional with TBD/WIN/LOSS status display
+- **Current State:** Application is running with NFL API integration
 
 ## Recent Changes
+- October 11, 2025: Implemented TBD status and NFL API integration
+  - Modified Pick model's `is_win` field to support tri-state values (None/True/False)
+  - Added TBD status display for games that haven't been played yet
+  - Updated fetch_nfl_winners command to extract team nicknames from ESPN API
+  - Fixed leaderboard and allPicks views to handle NULL values
+  - Fetched historical results for weeks 1-5 from ESPN API
+  
 - October 10, 2025: Imported from GitHub and configured for Replit
   - Installed all required Python dependencies
   - Configured ALLOWED_HOSTS for Replit proxy environment

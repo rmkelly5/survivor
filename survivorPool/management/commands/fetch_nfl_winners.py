@@ -32,12 +32,17 @@ class Command(BaseCommand):
         losses_updated = 0
         
         for result in results:
-            winner_team_name = result["winner"]
-            loser_team_name = result["loser"]
+            # Extract team nickname (last word) from full ESPN name
+            # e.g., "Philadelphia Eagles" -> "Eagles"
+            winner_full_name = result["winner"]
+            loser_full_name = result["loser"]
+            
+            winner_nickname = winner_full_name.split()[-1]
+            loser_nickname = loser_full_name.split()[-1]
             
             # Update winning team picks to is_win=True
             try:
-                winning_team = Team.objects.get(team_name=winner_team_name)
+                winning_team = Team.objects.get(team_name=winner_nickname)
                 wins_count = Pick.objects.filter(
                     team=winning_team,
                     week=current_week
@@ -45,11 +50,11 @@ class Command(BaseCommand):
                 wins_updated += wins_count
                 
             except Team.DoesNotExist:
-                self.stdout.write(self.style.WARNING(f"Winning team '{winner_team_name}' not found in database"))
+                self.stdout.write(self.style.WARNING(f"Winning team '{winner_nickname}' (from '{winner_full_name}') not found in database"))
             
             # Update losing team picks to is_win=False
             try:
-                losing_team = Team.objects.get(team_name=loser_team_name)
+                losing_team = Team.objects.get(team_name=loser_nickname)
                 losses_count = Pick.objects.filter(
                     team=losing_team,
                     week=current_week
@@ -57,7 +62,7 @@ class Command(BaseCommand):
                 losses_updated += losses_count
                 
             except Team.DoesNotExist:
-                self.stdout.write(self.style.WARNING(f"Losing team '{loser_team_name}' not found in database"))
+                self.stdout.write(self.style.WARNING(f"Losing team '{loser_nickname}' (from '{loser_full_name}') not found in database"))
 
         self.stdout.write(self.style.SUCCESS(
             f"Week {current_week} results: {wins_updated} picks marked as WINS, {losses_updated} picks marked as LOSSES"
