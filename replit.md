@@ -9,6 +9,20 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 - **Current State:** Application is running with NFL API integration and PostgreSQL backend
 
 ## Recent Changes
+- October 11, 2025: Enhanced betting odds with EST timezone and past game filtering
+  - Updated fetch_nfl_odds to convert all game times to EST timezone
+  - Added filtering to skip games that already happened (prevents stale odds)
+  - Updated team dropdown to display "EST" suffix on game times
+  - Fixed AnonymousUser error in pick form authentication check
+  - Note: The Odds API only returns upcoming games, so fetch odds for the current/upcoming week
+
+- October 11, 2025: Integrated The Odds API for betting odds and matchup data
+  - Added 6 new fields to Team model: opponent, game_time, spread, moneyline, is_home, current_week
+  - Created fetch_nfl_odds management command for fetching betting data
+  - Enhanced pick selection dropdown to show matchups, spreads, moneylines, and game times
+  - Example display: "⭐ Chiefs (vs Lions, -7.5, -300) - Sun 04:25 PM EST"
+  - API key stored in ODDS_API_KEY secret (500 free requests/month)
+
 - October 11, 2025: Migrated to PostgreSQL for production readiness
   - Successfully migrated from SQLite to PostgreSQL (68 objects migrated)
   - Installed psycopg2-binary for PostgreSQL connectivity
