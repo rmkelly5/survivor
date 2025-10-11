@@ -3,7 +3,7 @@
 from django.core.management.base import BaseCommand
 from survivorPool.tasks.nfl import get_nfl_weekly_winners
 from datetime import datetime
-from survivorPool.models import GameResult  # assuming you have this model
+from survivorPool.models import Pick, Team
 
 
 def get_current_nfl_week(season_start_date):
@@ -15,11 +15,10 @@ def get_current_nfl_week(season_start_date):
     return min(week, 18)  # limit to 18 weeks
 
 class Command(BaseCommand):
-    help = 'Fetch and store NFL game winners'
+    help = 'Fetch NFL game winners and update Pick model'
 
     def handle(self, *args, **kwargs):
         current_year = datetime.now().year
-        # current_week = 18  # Or use logic to calculate current week dynamically
         season_start_date = datetime(2025, 9, 5).date()
         current_week = get_current_nfl_week(season_start_date)
 
@@ -29,15 +28,24 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("NFL regular season hasn't started yet."))
             return
 
+        updated_count = 0
         for result in results:
-            GameResult.objects.update_or_create(
-                winner=result["winner"],
-                loser=result["loser"],
-                defaults={
-                    "winner_score": result["score"],
-                    "loser_score": result["loser_score"],
-                    "game_date": result["game_date"],
-                }
-            )
+            winner_team_name = result["winner"]
+            
+            # Find the winning team
+            try:
+                winning_team = Team.objects.get(team_name=winner_team_name)
+                
+                # Update all picks for this team in this week to is_win=True
+                picks_updated = Pick.objects.filter(
+                    team=winning_team,
+                    week=current_week
+                ).update(is_win=True)
+                
+                updated_count += picks_updated
+                
+            except Team.DoesNotExist:
+                self.stdout.write(self.style.WARNING(f"Team '{winner_team_name}' not found in database"))
+                continue
 
-        self.stdout.write(self.style.SUCCESS(f"Saved {len(results)} game results for Week {current_week}"))
+        self.stdout.write(self.style.SUCCESS(f"Updated {updated_count} picks as wins for Week {current_week}"))
