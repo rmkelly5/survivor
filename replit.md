@@ -9,6 +9,12 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 - **Current State:** Application is running with NFL API integration and PostgreSQL backend
 
 ## Recent Changes
+- October 12, 2025: Added tie game handling logic
+  - Ties now count as losses for survivor pool rules
+  - Updated ESPN API parsing to detect tie games (equal scores)
+  - Both teams in a tie game are marked as losses
+  - Command output now shows tie statistics when applicable
+
 - October 12, 2025: Restructured allPicks view with improved table layout
   - Changed table orientation: weeks are now rows, usernames are columns
   - Makes it easier to compare all players' picks for each week side-by-side

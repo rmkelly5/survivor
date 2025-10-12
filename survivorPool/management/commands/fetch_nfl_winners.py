@@ -43,8 +43,28 @@ class Command(BaseCommand):
 
         wins_updated = 0
         losses_updated = 0
+        ties_updated = 0
         
         for result in results:
+            # Check if this is a tie game
+            if result.get("is_tie"):
+                # In a tie, both teams count as losses
+                loser_full_name = result["loser"]
+                loser_nickname = loser_full_name.split()[-1]
+                
+                try:
+                    losing_team = Team.objects.get(team_name=loser_nickname)
+                    losses_count = Pick.objects.filter(
+                        team=losing_team,
+                        week=current_week
+                    ).update(is_win=False)
+                    losses_updated += losses_count
+                    ties_updated += losses_count
+                    
+                except Team.DoesNotExist:
+                    self.stdout.write(self.style.WARNING(f"Team in tie '{loser_nickname}' (from '{loser_full_name}') not found in database"))
+                continue
+            
             # Extract team nickname (last word) from full ESPN name
             # e.g., "Philadelphia Eagles" -> "Eagles"
             winner_full_name = result["winner"]
@@ -77,6 +97,7 @@ class Command(BaseCommand):
             except Team.DoesNotExist:
                 self.stdout.write(self.style.WARNING(f"Losing team '{loser_nickname}' (from '{loser_full_name}') not found in database"))
 
+        tie_msg = f" (including {ties_updated} from ties)" if ties_updated > 0 else ""
         self.stdout.write(self.style.SUCCESS(
-            f"Week {current_week} results: {wins_updated} picks marked as WINS, {losses_updated} picks marked as LOSSES"
+            f"Week {current_week} results: {wins_updated} picks marked as WINS, {losses_updated} picks marked as LOSSES{tie_msg}"
         ))
