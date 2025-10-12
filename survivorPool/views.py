@@ -171,30 +171,29 @@ def allPicksView(request):
     #tweak dataframe to create a view of all picks up to current week sorted by week chronologically
     df = df.sort_values(by=['Week'])
     
-    # Create pivot with team names and status
+    # Create pivot with weeks as rows and usernames as columns
     df['status'] = df['IsWin']  # Keep status for styling reference
-    df_display = df.pivot(index=['User Name'], columns='Week', values='Team')
-    df_status = df.pivot(index=['User Name'], columns='Week', values='status')
+    df_display = df.pivot(index='Week', columns='User Name', values='Team')
+    df_status = df.pivot(index='Week', columns='User Name', values='status')
     
     df_display = df_display.rename_axis(columns=None).reset_index()
     df_status = df_status.rename_axis(columns=None).reset_index()
     
     df_display = df_display.fillna("")
-    df_display = df_display.rename(columns=lambda x: f"Week {x}" if isinstance(x, int) else x)
-    df_status = df_status.rename(columns=lambda x: f"Week {x}" if isinstance(x, int) else x)
+    df_display = df_display.rename(columns={'Week': 'Week'})
     
     print(df_display)
 
     # Style function to add background colors based on pick result
     def style_cell(val):
-        # Get the row index and column from the cell position
+        # Get the row index from the cell position
         row_idx = val.name
         results = []
         
         for col in df_display.columns:
             cell_val = df_display.loc[row_idx, col]
             
-            if col == 'User Name' or not cell_val or cell_val == "":
+            if col == 'Week' or not cell_val or cell_val == "":
                 results.append('')
             else:
                 # Get the status for this cell

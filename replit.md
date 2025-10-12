@@ -9,6 +9,13 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 - **Current State:** Application is running with NFL API integration and PostgreSQL backend
 
 ## Recent Changes
+- October 12, 2025: Restructured allPicks view with improved table layout
+  - Changed table orientation: weeks are now rows, usernames are columns
+  - Makes it easier to compare all players' picks for each week side-by-side
+  - Maintained color coding: green for wins, red for losses, yellow for TBD
+  - Added --week parameter to fetch_nfl_winners command for historical data updates
+  - Fixed ESPN API parsing to handle games in progress (skip games without winners)
+
 - October 11, 2025: Enhanced betting odds with EST timezone and past game filtering
   - Updated fetch_nfl_odds to convert all game times to EST timezone
   - Added filtering to skip games that already happened (prevents stale odds)
