@@ -36,5 +36,5 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "survivor.wsgi:application"]
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=2", "--timeout=120", "--graceful-timeout=120", "survivor.wsgi:application"]
 build = ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput"]
