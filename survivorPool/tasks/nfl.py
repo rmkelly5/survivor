@@ -11,10 +11,14 @@ def get_nfl_weekly_winners(year: int, week: int):
     for event in data.get("events", []):
         competition = event["competitions"][0]
         competitors = competition["competitors"]
+        
+        # Skip games that haven't finished yet (no winner key)
+        if not any(team.get("winner") for team in competitors):
+            continue
 
         # Find the winner (home or away)
         for team in competitors:
-            if team["winner"]:
+            if team.get("winner"):
                 team_name = team["team"]["displayName"]
                 team_score = team["score"]
                 opponent = [t for t in competitors if t != team][0]

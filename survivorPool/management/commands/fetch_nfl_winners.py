@@ -17,10 +17,23 @@ def get_current_nfl_week(season_start_date):
 class Command(BaseCommand):
     help = 'Fetch NFL game winners and update Pick model'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--week',
+            type=int,
+            help='Specific week number to fetch (optional, defaults to current week)',
+        )
+
     def handle(self, *args, **kwargs):
         current_year = datetime.now().year
         season_start_date = datetime(2025, 9, 5).date()
-        current_week = get_current_nfl_week(season_start_date)
+        
+        # Use specified week or calculate current week
+        week = kwargs.get('week')
+        if week is None:
+            current_week = get_current_nfl_week(season_start_date)
+        else:
+            current_week = week
 
         results = get_nfl_weekly_winners(current_year, current_week)
 
