@@ -44,6 +44,7 @@ ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_str.split(',')]
 CSRF_TRUSTED_ORIGINS = [
     'https://*.replit.dev',
     'https://*.repl.co',
+    'https://*.replit.app',
 ]
 
 # CSRF and Session Cookie settings for Replit iframe environment
