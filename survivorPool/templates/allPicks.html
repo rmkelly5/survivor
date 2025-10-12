@@ -3,9 +3,11 @@
 {% block content %}
 {% if user.is_authenticated %}
 <h1>2025 Survivor Picks</h1>
-<br>
+<p style="color: #1a4d2e; margin-bottom: 1rem;">Weeks as rows, players as columns. Color coded: <span style="background-color: #d4edda; padding: 2px 8px; border-radius: 4px;">Win</span> <span style="background-color: #f8d7da; padding: 2px 8px; border-radius: 4px;">Loss</span> <span style="background-color: #fff3cd; padding: 2px 8px; border-radius: 4px;">TBD</span></p>
 
-{{df | safe}}
+<div class="table-responsive-wrapper">
+    {{df | safe}}
+</div>
 
 {% else %}
 <h1>Login to get started</h1>

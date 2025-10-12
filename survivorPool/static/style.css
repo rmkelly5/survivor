@@ -105,6 +105,7 @@ a:hover {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 1rem;
+    white-space: nowrap;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
@@ -113,6 +114,34 @@ a:hover {
 
 .table tbody td {
     padding: 0.9rem;
+}
+
+/* Scrollable Table Container */
+.table-responsive-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table-responsive-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-thumb {
+    background: #1a4d2e;
+    border-radius: 4px;
+}
+
+.table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a8763e;
 }
 
 /* Forms */
