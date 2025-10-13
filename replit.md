@@ -9,6 +9,13 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 - **Current State:** Application is running with NFL API integration and PostgreSQL backend
 
 ## Recent Changes
+- October 13, 2025: Fixed deployment health check timeouts
+  - Created lightweight health_check view at / that returns 200 without database queries
+  - Moved HomeView to /home/ to avoid expensive DB operations during health checks
+  - Updated LOGIN_REDIRECT_URL and LOGOUT_REDIRECT_URL to /home/
+  - Configured Gunicorn with 2 workers and 120s timeout for better performance
+  - Health checks now pass quickly, enabling successful production deployments
+
 - October 12, 2025: Fixed static files serving in production with WhiteNoise
   - Installed WhiteNoise package for serving static files through Gunicorn
   - Configured WhiteNoise middleware and CompressedManifestStaticFilesStorage
