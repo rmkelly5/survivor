@@ -12,8 +12,8 @@ import datetime
 from django.contrib.auth.models import User
 
 def health_check(request):
-    """Lightweight health check endpoint for deployment health checks"""
-    return HttpResponse("OK", status=200)
+    """Lightweight health check endpoint - redirects to home for users"""
+    return redirect('/home/')
 
 LEADERBOARD_COLUMNS = [
     'User Name',
