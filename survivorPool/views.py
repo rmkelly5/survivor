@@ -30,7 +30,23 @@ class HomeView(ListView):
     
     def head(self, *args, **kwargs):
         """Lightweight health check response for HEAD requests"""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Health check HEAD request received")
         return HttpResponse(status=200)
+    
+    def get_queryset(self):
+        """Override to add timeout protection for database queries"""
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            logger.info("HomeView GET request - fetching queryset")
+            queryset = super().get_queryset()
+            logger.info(f"HomeView queryset fetched successfully: {queryset.count()} picks")
+            return queryset
+        except Exception as e:
+            logger.error(f"HomeView queryset error: {str(e)}")
+            return Pick.objects.none()
 
 class AddPickView(CreateView):
     model = Pick

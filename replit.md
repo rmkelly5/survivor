@@ -9,12 +9,15 @@ This is a Django-based NFL Survivor Pool web application where users can make we
 - **Current State:** Application is running with NFL API integration and PostgreSQL backend
 
 ## Recent Changes
-- October 13, 2025: Fixed deployment health check timeouts
+- October 13, 2025: Fixed deployment health check timeouts with comprehensive optimizations
   - Modified HomeView to handle HEAD requests (used by health checks) without database queries
   - HEAD requests return 200 OK instantly, GET requests show normal home page
-  - Replit health checks always ping root `/` endpoint (no custom path support)
+  - Added database connection pooling (CONN_MAX_AGE=60) to reuse connections
+  - Configured database connection timeout (10 seconds) to prevent hanging
+  - Added comprehensive logging for debugging health checks in production
+  - Added error handling in HomeView.get_queryset() to prevent crashes
   - Configured Gunicorn with 2 workers and 120s timeout for better performance
-  - Health checks now pass quickly, enabling successful production deployments
+  - Replit health checks always ping root `/` endpoint (no custom path support)
 
 - October 12, 2025: Fixed static files serving in production with WhiteNoise
   - Installed WhiteNoise package for serving static files through Gunicorn

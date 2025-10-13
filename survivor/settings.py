@@ -131,6 +131,10 @@ DATABASES = {
         'PASSWORD': os.environ.get('PGPASSWORD'),
         'HOST': os.environ.get('PGHOST'),
         'PORT': os.environ.get('PGPORT'),
+        'CONN_MAX_AGE': 60,  # Connection pooling: keep connections alive for 60 seconds
+        'OPTIONS': {
+            'connect_timeout': 10,  # Timeout for establishing connection (10 seconds)
+        },
     }
 }
 
@@ -202,3 +206,31 @@ LOGOUT_REDIRECT_URL = '/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+# Logging configuration for debugging health checks
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'survivorPool': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Only log warnings/errors for database queries
+        },
+    },
+}
