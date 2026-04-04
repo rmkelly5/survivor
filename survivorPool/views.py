@@ -301,9 +301,8 @@ def modelToDataFrame(request):
 
 
 def allPicksView(request):
-    '''Builds a dataframe to display all picks up to given week'''
+    '''Builds a structured picks grid for display'''
 
-    current_nfl_week = 5
     season_start_date = datetime.datetime(2025, 9, 5).date()
     if datetime.date.today() < season_start_date:
         current_nfl_week = 1
@@ -311,60 +310,49 @@ def allPicksView(request):
         current_nfl_week = get_current_nfl_week(season_start_date)
 
     df = buildPickDataFrame(max_week=current_nfl_week)
+    if df.empty:
+        return render(request, 'allPicks.html', {'players': [], 'rows': [], 'eliminated': []})
 
-    #tweak dataframe to create a view of all picks up to current week sorted by week chronologically
     df = df.sort_values(by=['Week'])
 
-    # Create pivot with weeks as rows and usernames as columns
-    df['status'] = df['IsWin']  # Keep status for styling reference
-    df_display = df.pivot(index='Week', columns='User Name', values='Team')
-    df_status = df.pivot(index='Week', columns='User Name', values='status')
+    weeks = sorted(df['Week'].unique().tolist())
+    players = sorted(df['User Name'].unique().tolist())
 
-    df_display = df_display.rename_axis(columns=None).reset_index()
-    df_status = df_status.rename_axis(columns=None).reset_index()
+    # Build lookup: (week, player) -> {team, status}
+    pick_lookup = {}
+    for _, row in df.iterrows():
+        week = row['Week']
+        player = row['User Name']
+        team = row['Team']
+        is_win = row['IsWin']
+        if pd.isna(is_win):
+            status = 'TBD'
+        elif is_win:
+            status = 'WIN'
+        else:
+            status = 'LOSS'
+        pick_lookup[(week, player)] = {'team': team, 'status': status}
 
-    df_display = df_display.fillna("")
-    df_display = df_display.rename(columns={'Week': 'Week'})
+    eliminated = {
+        player for player in players
+        if any(
+            pick_lookup.get((w, player), {}).get('status') == 'LOSS'
+            for w in weeks
+        )
+    }
 
-    print(df_display)
-
-    # Style function to add background colors based on pick result
-    def style_cell(val):
-        # Get the row index from the cell position
-        row_idx = val.name
-        results = []
-
-        for col in df_display.columns:
-            cell_val = df_display.loc[row_idx, col]
-
-            if col == 'Week' or not cell_val or cell_val == "":
-                results.append('')
-            else:
-                # Get the status for this cell
-                status = df_status.loc[row_idx, col]
-
-                if pd.isna(status):
-                    results.append('background-color: #fff3cd; color: #856404;'
-                                   )  # Yellow for TBD
-                elif status == True:
-                    results.append('background-color: #d4edda; color: #155724;'
-                                   )  # Green for wins
-                elif status == False:
-                    results.append('background-color: #f8d7da; color: #721c24;'
-                                   )  # Red for losses
-                else:
-                    results.append('')
-
-        return results
-
-    # Apply styling
-    styled_df = df_display.style.apply(style_cell, axis=1)
+    rows = []
+    for week in weeks:
+        cells = []
+        for player in players:
+            cell = pick_lookup.get((week, player), {'team': '', 'status': ''})
+            cells.append(cell)
+        rows.append({'week': week, 'cells': cells})
 
     context = {
-        'df':
-        styled_df.to_html(
-            classes=["table-bordered", "table-striped", "table-hover"],
-            index=False),
+        'players': players,
+        'eliminated': list(eliminated),
+        'rows': rows,
     }
 
     return render(request, 'allPicks.html', context)

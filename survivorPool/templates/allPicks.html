@@ -2,17 +2,56 @@
 
 {% block content %}
 {% if user.is_authenticated %}
-<h1 class="mb-3">2025 League Picks</h1>
-<p class="text-muted mb-3" style="font-size:0.88rem;">
-    Weeks as rows, players as columns.&nbsp;
-    <span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:2px;font-weight:600;font-size:0.8rem;">WIN</span>&nbsp;
-    <span style="background:#fee2e2;color:#7f1d1d;padding:2px 8px;border-radius:2px;font-weight:600;font-size:0.8rem;">LOSS</span>&nbsp;
-    <span style="background:#fef3c7;color:#78350f;padding:2px 8px;border-radius:2px;font-weight:600;font-size:0.8rem;">TBD</span>
-</p>
 
-<div class="table-responsive-wrapper">
-    {{ df | safe }}
+<div class="picks-header">
+    <h1 class="mb-1">2025 League Picks</h1>
+    <p class="text-muted mb-3" style="font-size:0.85rem;">Weeks as rows · Players as columns · Scroll right to see all players</p>
+
+    <div class="picks-legend">
+        <span class="picks-badge win">WIN</span>
+        <span class="picks-badge loss">LOSS</span>
+        <span class="picks-badge tbd">TBD</span>
+        <span class="picks-badge empty">No Pick</span>
+        <span class="picks-eliminated-key">⚡ = Eliminated</span>
+    </div>
 </div>
+
+{% if rows %}
+<div class="picks-scroll-wrapper">
+    <table class="picks-table">
+        <thead>
+            <tr>
+                <th class="picks-week-col picks-sticky">WK</th>
+                {% for player in players %}
+                <th class="picks-player-col {% if player in eliminated %}eliminated-header{% endif %}">
+                    {% if player in eliminated %}<span class="elim-icon">⚡</span>{% endif %}
+                    {{ player }}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td class="picks-week-num picks-sticky">{{ row.week }}</td>
+                {% for cell in row.cells %}
+                <td class="picks-cell picks-cell--{{ cell.status|lower }}">
+                    {% if cell.team %}
+                        <span class="cell-team">{{ cell.team }}</span>
+                        <span class="picks-badge {{ cell.status|lower }}">{{ cell.status }}</span>
+                    {% else %}
+                        <span class="cell-empty">—</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">No picks have been recorded yet.</p>
+{% endif %}
 
 {% else %}
 <h1>Login to get started</h1>
