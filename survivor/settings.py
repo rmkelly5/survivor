@@ -110,29 +110,30 @@ WSGI_APPLICATION = 'survivor.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-import os
+import dj_database_url
 
-# PostgreSQL Database Configuration
-# Validate required PostgreSQL environment variables in production
-required_pg_vars = ['PGDATABASE', 'PGUSER', 'PGPASSWORD', 'PGHOST', 'PGPORT']
-if not DEBUG:
-    missing_vars = [var for var in required_pg_vars if not os.environ.get(var)]
-    if missing_vars:
-        raise ValueError(
-            f'Missing required PostgreSQL environment variables in production: {", ".join(missing_vars)}. '
-            'These must be set in deployment secrets for the database connection to work.'
-        )
+# Database configuration
+# In production (Replit autoscale), the internal 'helium' hostname is not accessible.
+# NEON_DATABASE_URL is a cloud-hosted Postgres database reachable from any environment.
+# Priority: NEON_DATABASE_URL > DATABASE_URL > individual PG vars (dev fallback)
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('PGDATABASE'),
-        'USER': os.environ.get('PGUSER'),
-        'PASSWORD': os.environ.get('PGPASSWORD'),
-        'HOST': os.environ.get('PGHOST'),
-        'PORT': os.environ.get('PGPORT'),
+_db_url = os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL')
+
+if _db_url:
+    DATABASES = {
+        'default': dj_database_url.parse(_db_url, conn_max_age=600)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('PGDATABASE'),
+            'USER': os.environ.get('PGUSER'),
+            'PASSWORD': os.environ.get('PGPASSWORD'),
+            'HOST': os.environ.get('PGHOST'),
+            'PORT': os.environ.get('PGPORT'),
+        }
+    }
 
 # Old SQLite Configuration (kept for reference)
 # DATABASES = {
