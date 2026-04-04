@@ -3,24 +3,232 @@
 {% block content %}
 
 {% if user.is_authenticated %}
-    <h1>Choose Your Pick...</h1>
-    <div class="form-group">
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-    <button class="btn btn-primary">Pick</button>
-    <br/><br/>
+<h1 class="mb-1">Week {{ current_week }} Matchups</h1>
+<p class="text-muted mb-3">Click a team to select your pick</p>
+
+<form method="POST" id="pick-form">
+    {% csrf_token %}
+    <input type="hidden" name="user_name" id="user" value="{{ user.id }}">
+    <input type="hidden" name="week" id="week-input" value="{{ current_week }}">
+    <input type="hidden" name="team" id="team-input" value="">
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
     </div>
+    {% endif %}
 
-    <script>
-         var name = "{{ user.id }}";
-         document.getElementById("user").value = name;
+    {% if matchups %}
+    <div class="matchups-grid">
+        {% for matchup in matchups %}
+        <div class="matchup-card">
+            {% if matchup.game_time %}
+            <div class="game-time">{{ matchup.game_time|date:"D, N j \a\t g:i A" }} EST</div>
+            {% endif %}
+            <div class="matchup-teams">
 
-    </script>
-    <a href="{% url 'home' %}" class="btn btn-secondary">Back</a>
+                {% if matchup.away %}
+                <div class="team-card {% if matchup.away_picked %}already-picked{% endif %}"
+                     data-team-id="{{ matchup.away.id }}"
+                     {% if not matchup.away_picked %}onclick="selectTeam({{ matchup.away.id }}, this)"{% endif %}>
+                    <div class="team-logo-wrap">
+                        {% if matchup.away_logo %}
+                        <img src="{{ matchup.away_logo }}" onerror="this.style.display='none'"
+                             alt="{{ matchup.away.team_name }}" class="team-logo">
+                        {% endif %}
+                    </div>
+                    <div class="team-name">{{ matchup.away.team_name }}</div>
+                    <div class="team-meta">
+                        {% if matchup.away.is_favorite %}<span class="badge-fav">FAV</span>{% endif %}
+                        {% if matchup.away.spread and matchup.away.is_favorite %}<span class="odds-info">-{{ matchup.away.spread }}</span>{% endif %}
+                        {% if matchup.away.moneyline %}<span class="odds-info">{% if matchup.away.moneyline > 0 %}+{% endif %}{{ matchup.away.moneyline }}</span>{% endif %}
+                    </div>
+                    {% if matchup.away_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
+                </div>
+                {% endif %}
+
+                <div class="vs-divider">@</div>
+
+                <div class="team-card {% if matchup.home_picked %}already-picked{% endif %}"
+                     data-team-id="{{ matchup.home.id }}"
+                     {% if not matchup.home_picked %}onclick="selectTeam({{ matchup.home.id }}, this)"{% endif %}>
+                    <div class="team-logo-wrap">
+                        {% if matchup.home_logo %}
+                        <img src="{{ matchup.home_logo }}" onerror="this.style.display='none'"
+                             alt="{{ matchup.home.team_name }}" class="team-logo">
+                        {% endif %}
+                    </div>
+                    <div class="team-name">{{ matchup.home.team_name }}</div>
+                    <div class="team-meta">
+                        {% if matchup.home.is_favorite %}<span class="badge-fav">FAV</span>{% endif %}
+                        {% if matchup.home.spread and matchup.home.is_favorite %}<span class="odds-info">-{{ matchup.home.spread }}</span>{% endif %}
+                        {% if matchup.home.moneyline %}<span class="odds-info">{% if matchup.home.moneyline > 0 %}+{% endif %}{{ matchup.home.moneyline }}</span>{% endif %}
+                    </div>
+                    {% if matchup.home_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">No matchups found for Week {{ current_week }}. Check back when the schedule is loaded.</div>
+    {% endif %}
+
+    <div class="submit-row mt-4">
+        <span id="selected-label" class="text-muted me-3">No team selected</span>
+        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Submit Pick</button>
+        <a href="{% url 'home' %}" class="btn btn-secondary ms-2">Back</a>
+    </div>
+</form>
+
+<style>
+.matchups-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.matchup-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.game-time {
+    font-size: 0.78rem;
+    color: #6c757d;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.matchup-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.team-card {
+    flex: 1;
+    max-width: 180px;
+    text-align: center;
+    padding: 12px 10px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    position: relative;
+    background: #f8f9fa;
+}
+
+.team-card:not(.already-picked):hover {
+    border-color: #0d6efd;
+    background: #e8f0fe;
+    transform: translateY(-2px);
+}
+
+.team-card.selected {
+    border-color: #0d6efd;
+    background: #cfe2ff;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
+}
+
+.team-card.already-picked {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(60%);
+}
+
+.team-logo-wrap {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.team-logo {
+    max-height: 64px;
+    max-width: 64px;
+    object-fit: contain;
+}
+
+.team-name {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.team-meta {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+}
+
+.badge-fav {
+    background: #ffc107;
+    color: #212529;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 700;
+}
+
+.odds-info {
+    color: #495057;
+    font-weight: 500;
+}
+
+.already-picked-label {
+    font-size: 0.7rem;
+    color: #dc3545;
+    font-weight: 600;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.vs-divider {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #adb5bd;
+    flex-shrink: 0;
+    width: 32px;
+    text-align: center;
+}
+
+.submit-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #dee2e6;
+}
+</style>
+
+<script>
+function selectTeam(teamId, el) {
+    document.querySelectorAll('.team-card.selected').forEach(function(c) {
+        c.classList.remove('selected');
+    });
+    el.classList.add('selected');
+    document.getElementById('team-input').value = teamId;
+    document.getElementById('submit-btn').disabled = false;
+    var teamName = el.querySelector('.team-name').textContent.trim();
+    document.getElementById('selected-label').textContent = 'Selected: ' + teamName;
+}
+</script>
+
 {% else %}
-
-    You need to be logged in to make a Pick!
-    
+<p>You need to be logged in to make a Pick!</p>
 {% endif %}
+
 {% endblock %}

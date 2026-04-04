@@ -13,6 +13,41 @@ from django.contrib.auth.models import User
 
 LEADERBOARD_COLUMNS = ['User Name', 'Team', "IsWin", "Week"]
 
+NFL_TEAM_LOGOS = {
+    'Cardinals': 'ari',
+    'Falcons': 'atl',
+    'Ravens': 'bal',
+    'Bills': 'buf',
+    'Panthers': 'car',
+    'Bears': 'chi',
+    'Bengals': 'cin',
+    'Browns': 'cle',
+    'Cowboys': 'dal',
+    'Broncos': 'den',
+    'Lions': 'det',
+    'Packers': 'gb',
+    'Texans': 'hou',
+    'Colts': 'ind',
+    'Jaguars': 'jax',
+    'Chiefs': 'kc',
+    'Raiders': 'lv',
+    'Chargers': 'lac',
+    'Rams': 'lar',
+    'Dolphins': 'mia',
+    'Vikings': 'min',
+    'Patriots': 'ne',
+    'Saints': 'no',
+    'Giants': 'nyg',
+    'Jets': 'nyj',
+    'Eagles': 'phi',
+    'Steelers': 'pit',
+    '49ers': 'sf',
+    'Seahawks': 'sea',
+    'Buccaneers': 'tb',
+    'Titans': 'ten',
+    'Commanders': 'wsh',
+}
+
 # Create your views here.
 #def index(request):
 #return HttpResponse("Hello, world. You're at the Survivor Pool index.")
@@ -33,6 +68,54 @@ class AddPickView(CreateView):
         kwargs = super(AddPickView, self).get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        season_start_date = datetime.date(2025, 9, 5)
+        today = datetime.date.today()
+        if today < season_start_date:
+            current_week = 1
+        else:
+            delta = today - season_start_date
+            current_week = min(delta.days // 7 + 1, 18)
+
+        used_team_ids = set()
+        if self.request.user.is_authenticated:
+            used_team_ids = set(
+                Pick.objects.filter(user_name=self.request.user).values_list('team_id', flat=True)
+            )
+
+        week_teams = list(Team.objects.filter(current_week=current_week))
+
+        def logo_url(team):
+            abbrev = NFL_TEAM_LOGOS.get(team.team_name)
+            return f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbrev}.png" if abbrev else ""
+
+        matchups = []
+        paired_ids = set()
+        for team in week_teams:
+            if team.id in paired_ids:
+                continue
+            if team.is_home:
+                away = next((t for t in week_teams if t.team_name == team.opponent and not t.is_home), None)
+                matchups.append({
+                    'home': team,
+                    'home_logo': logo_url(team),
+                    'home_picked': team.id in used_team_ids,
+                    'away': away,
+                    'away_logo': logo_url(away) if away else "",
+                    'away_picked': away.id in used_team_ids if away else False,
+                    'game_time': team.game_time,
+                })
+                paired_ids.add(team.id)
+                if away:
+                    paired_ids.add(away.id)
+
+        context['matchups'] = matchups
+        context['used_team_ids'] = used_team_ids
+        context['current_week'] = current_week
+        return context
 
 
 class PickDetailView(DetailView):
