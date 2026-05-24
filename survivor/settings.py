@@ -47,16 +47,23 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.replit.app',
 ]
 
-# CSRF and Session Cookie settings for Replit iframe environment
-# In Replit, the app runs inside an iframe, which requires special cookie settings
-# SameSite='None' REQUIRES Secure=True for modern browsers to accept the cookies
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True  # Required for SameSite='None'
-SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True  # Required for SameSite='None'
+# CSRF and Session Cookie settings
+# In development, the app runs inside a Replit iframe which requires SameSite=None.
+# In production, users access the app directly over HTTPS — SameSite=Lax is correct
+# and far more compatible across browsers. SameSite=None in production causes
+# cookie issues in Safari and other browsers, breaking CSRF for all POST forms.
+if DEBUG:
+    CSRF_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SECURE = True
+else:
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = True
 
 # Tell Django it's behind an HTTPS proxy (Replit serves HTTPS externally)
-# This is required for secure cookies to work properly
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
