@@ -12,7 +12,7 @@
                      style="border-left: 5px solid {% if pick.is_win == None %}#d97706{% elif pick.is_win %}#16a34a{% else %}#dc2626{% endif %};">
                     <div class="pick-item-main">
                         <div class="fw-bold pick-item-title">
-                            Week {{ pick.week }}: {{ pick.team.team_name }}
+                            Week {{ pick.week }}: {% if pick.missed_deadline %}No pick{% else %}{{ pick.team.team_name }}{% endif %}
                             {% if pick.missed_deadline %}<span class="text-danger small">(missed deadline)</span>{% endif %}
                         </div>
                     </div>

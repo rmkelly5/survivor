@@ -242,12 +242,21 @@ class AddPickView(LoginRequiredMixin, CreateView):
         return matchups
 
 
-class PickDetailView(DetailView):
+class OwnerPickQuerysetMixin(LoginRequiredMixin):
+    model = Pick
+
+    def get_queryset(self):
+        return Pick.objects.filter(
+            user_name=self.request.user,
+        ).select_related('team', 'user_name')
+
+
+class PickDetailView(OwnerPickQuerysetMixin, DetailView):
     model = Pick
     template_name = 'pick_details.html'
 
 
-class UpdatePickView(UpdateView):
+class UpdatePickView(OwnerPickQuerysetMixin, UpdateView):
     model = Pick
     template_name = 'update_pick.html'
 
@@ -279,7 +288,7 @@ class UpdatePickView(UpdateView):
         return super().form_valid(form)
 
 
-class DeletePickView(DeleteView):
+class DeletePickView(OwnerPickQuerysetMixin, DeleteView):
     model = Pick
     template_name = 'delete_pick.html'
     fields = ['week']
@@ -318,7 +327,7 @@ def all_picks_view(request):
             cell = grid['pick_lookup'].get((current_nfl_week, player), {})
             current_week_cards.append({
                 'player': player,
-                'team': cell.get('team') or '—',
+                'team': cell.get('team') or '-',
                 'status': cell.get('status') or '',
                 'missed_deadline': cell.get('missed_deadline', False),
             })

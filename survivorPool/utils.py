@@ -68,7 +68,7 @@ def build_picks_grid(max_week: int | None = None) -> dict[str, Any]:
         weeks_set.add(pick.week)
         players_set.add(player)
         pick_lookup[(pick.week, player)] = {
-            'team': pick.team.team_name,
+            'team': '' if pick.missed_deadline else pick.team.team_name,
             'status': pick_status(pick.is_win),
             'missed_deadline': pick.missed_deadline,
         }
@@ -114,19 +114,15 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
 
 
 def get_league_member_usernames() -> list[str]:
-    """Users who have ever submitted a pick, plus all active users with picks."""
-    pick_users = set(
+    """Users who have submitted at least one real pick."""
+    return list(
         Pick.objects.filter(
+            missed_deadline=False,
             user_name__is_active=True,
             user_name__is_staff=False,
             user_name__is_superuser=False,
-        ).values_list('user_name__username', flat=True).distinct()
+        )
+        .order_by('user_name__username')
+        .values_list('user_name__username', flat=True)
+        .distinct()
     )
-    all_users = set(
-        User.objects.filter(
-            is_active=True,
-            is_staff=False,
-            is_superuser=False,
-        ).values_list('username', flat=True)
-    )
-    return sorted(pick_users | all_users)

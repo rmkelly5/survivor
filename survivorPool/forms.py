@@ -66,7 +66,11 @@ class PostForm(forms.ModelForm):
         # Filter out teams that this user has already picked this season
         if self.user and self.user.is_authenticated:
             used_team_ids = Pick.objects.filter(
-                user_name=self.user).values_list('team_id', flat=True)
+                user_name=self.user,
+                missed_deadline=False,
+            ).exclude(
+                team__team_name='No Pick',
+            ).values_list('team_id', flat=True)
             available_teams = available_teams.exclude(id__in=used_team_ids)
             self.fields['team'].queryset = available_teams
         else:
@@ -119,9 +123,12 @@ class PostForm(forms.ModelForm):
         user_name = self.user if self.user and self.user.is_authenticated else cleaned_data.get('user_name')
 
         # Check if user already picked this team in a previous week
-        if team and user_name:
-            previous_pick = Pick.objects.filter(user_name=user_name,
-                                                team=team).first()
+        if team and user_name and team.team_name != 'No Pick':
+            previous_pick = Pick.objects.filter(
+                user_name=user_name,
+                team=team,
+                missed_deadline=False,
+            ).first()
             if previous_pick:
                 raise forms.ValidationError(
                     f"You already picked {team.team_name} in Week {previous_pick.week}. You cannot pick the same team twice in a season."
@@ -174,7 +181,13 @@ class UpdatePickForm(forms.ModelForm):
 
         # Filter out teams that this user has already picked (except the current one)
         if self.user and self.current_pick:
-            used_team_ids = Pick.objects.filter(user_name=self.user).exclude(
-                id=self.current_pick.id).values_list('team_id', flat=True)
+            used_team_ids = Pick.objects.filter(
+                user_name=self.user,
+                missed_deadline=False,
+            ).exclude(
+                id=self.current_pick.id,
+            ).exclude(
+                team__team_name='No Pick',
+            ).values_list('team_id', flat=True)
             available_teams = Team.objects.exclude(id__in=used_team_ids)
             self.fields['team'].queryset = available_teams

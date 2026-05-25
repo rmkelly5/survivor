@@ -5,7 +5,7 @@
 
 <div class="picks-header">
     <h1 class="mb-1">{{ season_year }} League Picks</h1>
-    <p class="text-muted mb-3 picks-subtitle">Scroll the grid sideways on mobile , or use This Week below</p>
+    <p class="text-muted mb-3 picks-subtitle">Scroll the grid sideways on mobile, or use This Week below</p>
 
     <div class="picks-legend">
         <span class="picks-badge win">WIN</span>
@@ -52,6 +52,9 @@
                     {% if cell.team %}
                         <span class="cell-team">{{ cell.team }}</span>
                         <span class="picks-badge {{ cell.status|lower }}">{{ cell.status }}</span>
+                    {% elif cell.missed_deadline %}
+                        <span class="cell-empty">-</span>
+                        <span class="picks-badge loss">LOSS</span>
                     {% else %}
                         <span class="cell-empty">-</span>
                     {% endif %}

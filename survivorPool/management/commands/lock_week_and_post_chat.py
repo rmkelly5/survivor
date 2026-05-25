@@ -4,7 +4,12 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from survivorPool.models import ChatMessage, Pick, Team, WeekLockRun
-from survivorPool.utils import build_picks_grid, get_current_nfl_week, is_week_locked
+from survivorPool.utils import (
+    build_picks_grid,
+    get_current_nfl_week,
+    get_league_member_usernames,
+    is_week_locked,
+)
 
 
 class Command(BaseCommand):
@@ -43,11 +48,19 @@ class Command(BaseCommand):
         no_pick_team, _ = Team.objects.get_or_create(team_name='No Pick')
 
         with transaction.atomic():
+            league_usernames = get_league_member_usernames()
+
             if force:
                 WeekLockRun.objects.filter(season_year=season_year, week=week).delete()
+                ChatMessage.objects.filter(
+                    message_type=ChatMessage.MESSAGE_WEEKLY_LOCK,
+                    week=week,
+                ).delete()
+                Pick.objects.filter(week=week, missed_deadline=True).delete()
 
             missed_users = []
             league_users = User.objects.filter(
+                username__in=league_usernames,
                 is_active=True,
                 is_staff=False,
                 is_superuser=False,
@@ -65,6 +78,10 @@ class Command(BaseCommand):
                 missed_users.append(user.username)
 
             WeekLockRun.objects.create(season_year=season_year, week=week)
+            ChatMessage.objects.filter(
+                message_type=ChatMessage.MESSAGE_WEEKLY_LOCK,
+                week=week,
+            ).delete()
             body = self._build_summary_message(week, missed_users)
             ChatMessage.objects.create(
                 author=None,
@@ -79,21 +96,21 @@ class Command(BaseCommand):
 
     def _build_summary_message(self, week: int, missed_usernames: list[str]) -> str:
         grid = build_picks_grid(max_week=week)
-        lines = [f'Week {week} picks — LOCKED 1:05 PM ET', '']
+        lines = [f'Week {week} picks - LOCKED 1:05 PM ET', '']
 
         for player in grid['players']:
             cell = grid['pick_lookup'].get((week, player), {})
             team = cell.get('team') or ''
             if team:
-                suffix = ' (NO PICK — auto LOSS)' if cell.get('missed_deadline') else ''
-                lines.append(f'{player} — {team}{suffix}')
+                suffix = ' (NO PICK - auto LOSS)' if cell.get('missed_deadline') else ''
+                lines.append(f'{player} - {team}{suffix}')
             elif player in missed_usernames:
-                lines.append(f'{player} — NO PICK (auto LOSS)')
+                lines.append(f'{player} - NO PICK (auto LOSS)')
 
         if missed_usernames:
             lines.extend(['', 'NO PICK (auto LOSS):'])
             for name in missed_usernames:
-                lines.append(f'  • {name}')
+                lines.append(f'  - {name}')
             lines.extend([
                 '',
                 f"Shame corner: {', '.join(missed_usernames)} didn't get it in on time.",
