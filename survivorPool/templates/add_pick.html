@@ -55,9 +55,9 @@
                     </div>
                     <div class="team-name">{{ matchup.away.team_name }}</div>
                     <div class="team-meta">
-                        {% if matchup.away.is_favorite %}<span class="badge-fav">FAV</span>{% endif %}
-                        {% if matchup.away.spread and matchup.away.is_favorite %}<span class="odds-info">-{{ matchup.away.spread }}</span>{% endif %}
-                        {% if matchup.away.moneyline %}<span class="odds-info">{% if matchup.away.moneyline > 0 %}+{% endif %}{{ matchup.away.moneyline }}</span>{% endif %}
+                        {% if matchup.away_is_favorite %}<span class="badge-fav">FAV</span>{% endif %}
+                        {% if matchup.away_spread and matchup.away_is_favorite %}<span class="odds-info">-{{ matchup.away_spread }}</span>{% endif %}
+                        {% if matchup.away_moneyline %}<span class="odds-info">{% if matchup.away_moneyline > 0 %}+{% endif %}{{ matchup.away_moneyline }}</span>{% endif %}
                     </div>
                     {% if matchup.away_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
                 </label>
@@ -80,9 +80,9 @@
                     </div>
                     <div class="team-name">{{ matchup.home.team_name }}</div>
                     <div class="team-meta">
-                        {% if matchup.home.is_favorite %}<span class="badge-fav">FAV</span>{% endif %}
-                        {% if matchup.home.spread and matchup.home.is_favorite %}<span class="odds-info">-{{ matchup.home.spread }}</span>{% endif %}
-                        {% if matchup.home.moneyline %}<span class="odds-info">{% if matchup.home.moneyline > 0 %}+{% endif %}{{ matchup.home.moneyline }}</span>{% endif %}
+                        {% if matchup.home_is_favorite %}<span class="badge-fav">FAV</span>{% endif %}
+                        {% if matchup.home_spread and matchup.home_is_favorite %}<span class="odds-info">-{{ matchup.home_spread }}</span>{% endif %}
+                        {% if matchup.home_moneyline %}<span class="odds-info">{% if matchup.home_moneyline > 0 %}+{% endif %}{{ matchup.home_moneyline }}</span>{% endif %}
                     </div>
                     {% if matchup.home_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
                 </label>

@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from survivorPool.models import Team
+from django.conf import settings
+from survivorPool.models import Game, Team
 from datetime import datetime
 import os
 import pytz
@@ -46,7 +47,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--year',
             type=int,
-            default=2025,
+            default=settings.NFL_SEASON_YEAR,
             help='NFL season year to fetch odds for',
         )
 
@@ -196,6 +197,20 @@ class Command(BaseCommand):
                 away_team.current_week = week
                 away_team.is_favorite = away_is_favorite
                 away_team.save()
+
+                Game.objects.filter(
+                    season_year=year,
+                    week=week,
+                    home_team=home_team,
+                    away_team=away_team,
+                ).update(
+                    home_spread=spread if home_is_favorite else None,
+                    home_moneyline=moneyline_home,
+                    home_is_favorite=home_is_favorite,
+                    away_spread=spread if away_is_favorite else None,
+                    away_moneyline=moneyline_away,
+                    away_is_favorite=away_is_favorite,
+                )
 
                 updated_count += 1
                 favorite_status = 'favorite' if home_is_favorite or away_is_favorite else 'no favorite'

@@ -3,7 +3,7 @@ from django.test import RequestFactory, TestCase
 from unittest.mock import patch
 
 from .forms import PostForm
-from .models import Pick, Team
+from .models import Game, Pick, Team
 from .views import AddPickView
 
 
@@ -31,6 +31,22 @@ class AddPickViewTests(TestCase):
 
         self.assertEqual(view._get_display_week(), 3)
 
+    def test_display_week_uses_loaded_game_schedule(self):
+        user = User.objects.create_user(username='miscia')
+        cardinals = Team.objects.create(team_name='Cardinals')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        Game.objects.create(season_year=2026, week=1, home_team=cardinals, away_team=bills)
+        Game.objects.create(season_year=2026, week=2, home_team=dolphins, away_team=bills)
+        Pick.objects.create(user_name=user, team=cardinals, week=1, is_win=True)
+
+        request = RequestFactory().get('/add_pick/')
+        request.user = user
+        view = AddPickView()
+        view.request = request
+
+        self.assertEqual(view._get_display_week(), 2)
+
 
 class PostFormTests(TestCase):
     def test_team_queryset_is_limited_to_selected_week(self):
@@ -43,6 +59,22 @@ class PostFormTests(TestCase):
         self.assertQuerySetEqual(
             form.fields['team'].queryset.order_by('team_name'),
             ['Bills'],
+            transform=lambda team: team.team_name,
+        )
+
+    def test_team_queryset_uses_game_schedule_when_loaded(self):
+        user = User.objects.create_user(username='miscia')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        rams = Team.objects.create(team_name='Rams')
+        Game.objects.create(season_year=2026, week=1, home_team=bills, away_team=dolphins)
+        Game.objects.create(season_year=2026, week=2, home_team=rams, away_team=dolphins)
+
+        form = PostForm(user=user, initial={'week': 1})
+
+        self.assertQuerySetEqual(
+            form.fields['team'].queryset.order_by('team_name'),
+            ['Bills', 'Dolphins'],
             transform=lambda team: team.team_name,
         )
 

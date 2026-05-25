@@ -1,9 +1,10 @@
 from typing import Any, Dict
+from django.conf import settings
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django_tables2 import SingleTableView
-from .models import Pick, User, Team
+from .models import Game, Pick, User, Team
 from django.urls import reverse_lazy
 from .forms import PostForm
 from .tables import PickTable
@@ -66,7 +67,7 @@ class AddPickView(LoginRequiredMixin, CreateView):
     template_name = 'add_pick.html'
 
     def _get_current_nfl_week(self):
-        season_start_date = datetime.date(2025, 9, 5)
+        season_start_date = settings.NFL_SEASON_START_DATE
         today = datetime.date.today()
         if today < season_start_date:
             return 1
@@ -74,12 +75,15 @@ class AddPickView(LoginRequiredMixin, CreateView):
         return min(delta.days // 7 + 1, 18)
 
     def _get_loaded_weeks(self):
-        return list(
-            Team.objects.filter(current_week__isnull=False)
-            .order_by('current_week')
-            .values_list('current_week', flat=True)
-            .distinct()
+        game_weeks = set(
+            Game.objects.filter(season_year=settings.NFL_SEASON_YEAR)
+            .values_list('week', flat=True)
         )
+        team_weeks = set(
+            Team.objects.filter(current_week__isnull=False)
+            .values_list('current_week', flat=True)
+        )
+        return sorted(game_weeks | team_weeks)
 
     def _get_default_week(self):
         current_week = self._get_current_nfl_week()
@@ -135,43 +139,86 @@ class AddPickView(LoginRequiredMixin, CreateView):
                 Pick.objects.filter(user_name=self.request.user).values_list('team_id', flat=True)
             )
 
-        week_teams = list(Team.objects.filter(current_week=display_week))
+        games = list(
+            Game.objects.filter(
+                season_year=settings.NFL_SEASON_YEAR,
+                week=display_week,
+            )
+            .select_related('home_team', 'away_team')
+            .order_by('game_time')
+        )
 
         def logo_url(team):
             abbrev = NFL_TEAM_LOGOS.get(team.team_name)
             return f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbrev}.png" if abbrev else ""
 
         matchups = []
-        paired_ids = set()
-        for team in week_teams:
-            if team.id in paired_ids:
-                continue
-            if team.is_home:
-                away = next((t for t in week_teams if t.team_name == team.opponent and not t.is_home), None)
+        if games:
+            for game in games:
+                matchups.append({
+                    'home': game.home_team,
+                    'home_logo': logo_url(game.home_team),
+                    'home_picked': game.home_team_id in used_team_ids,
+                    'home_is_favorite': game.home_is_favorite,
+                    'home_spread': game.home_spread,
+                    'home_moneyline': game.home_moneyline,
+                    'away': game.away_team,
+                    'away_logo': logo_url(game.away_team),
+                    'away_picked': game.away_team_id in used_team_ids,
+                    'away_is_favorite': game.away_is_favorite,
+                    'away_spread': game.away_spread,
+                    'away_moneyline': game.away_moneyline,
+                    'game_time': game.game_time,
+                })
+        else:
+            week_teams = list(Team.objects.filter(current_week=display_week))
+            paired_ids = set()
+            for team in week_teams:
+                if team.id in paired_ids:
+                    continue
+                if not team.is_home:
+                    continue
+
+                away = next(
+                    (t for t in week_teams if t.team_name == team.opponent and not t.is_home),
+                    None,
+                )
                 matchups.append({
                     'home': team,
                     'home_logo': logo_url(team),
                     'home_picked': team.id in used_team_ids,
+                    'home_is_favorite': team.is_favorite,
+                    'home_spread': team.spread,
+                    'home_moneyline': team.moneyline,
                     'away': away,
                     'away_logo': logo_url(away) if away else "",
                     'away_picked': away.id in used_team_ids if away else False,
+                    'away_is_favorite': away.is_favorite if away else False,
+                    'away_spread': away.spread if away else None,
+                    'away_moneyline': away.moneyline if away else None,
                     'game_time': team.game_time,
                 })
                 paired_ids.add(team.id)
                 if away:
                     paired_ids.add(away.id)
 
-        for team in week_teams:
-            if team.id not in paired_ids:
-                matchups.append({
-                    'home': team,
-                    'home_logo': logo_url(team),
-                    'home_picked': team.id in used_team_ids,
-                    'away': None,
-                    'away_logo': "",
-                    'away_picked': False,
-                    'game_time': team.game_time,
-                })
+            for team in week_teams:
+                if team.id not in paired_ids:
+                    matchups.append({
+                        'home': team,
+                        'home_logo': logo_url(team),
+                        'home_picked': team.id in used_team_ids,
+                        'home_is_favorite': team.is_favorite,
+                        'home_spread': team.spread,
+                        'home_moneyline': team.moneyline,
+                        'away': None,
+                        'away_logo': "",
+                        'away_picked': False,
+                        'away_is_favorite': False,
+                        'away_spread': None,
+                        'away_moneyline': None,
+                        'game_time': team.game_time,
+                    })
 
         selected_team_id = None
         if self.request.method == 'POST':
@@ -234,7 +281,11 @@ class UpdatePickView(UpdateView):
         now = datetime.datetime.now(est)
 
         # Calculate the Sunday of the given week
-        season_start = datetime.datetime(2025, 9, 5, tzinfo=est)
+        season_start = datetime.datetime.combine(
+            settings.NFL_SEASON_START_DATE,
+            datetime.datetime.min.time(),
+        )
+        season_start = est.localize(season_start)
         days_to_week = (week_number - 1) * 7
         week_sunday = season_start + datetime.timedelta(days=days_to_week + 2)
         week_sunday = week_sunday.replace(hour=9,
@@ -337,7 +388,7 @@ def modelToDataFrame(request):
 def allPicksView(request):
     '''Builds a structured picks grid for display'''
 
-    season_start_date = datetime.datetime(2025, 9, 5).date()
+    season_start_date = settings.NFL_SEASON_START_DATE
     if datetime.date.today() < season_start_date:
         current_nfl_week = 1
     else:

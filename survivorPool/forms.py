@@ -1,5 +1,6 @@
 from django import forms
-from .models import Pick, Team
+from django.conf import settings
+from .models import Game, Pick, Team
 from datetime import datetime, timedelta
 import pytz
 
@@ -57,7 +58,11 @@ class PostForm(forms.ModelForm):
 
         available_teams = Team.objects.all()
         if selected_week is not None:
-            available_teams = available_teams.filter(current_week=selected_week)
+            game_team_ids = self._game_team_ids_for_week(selected_week)
+            if game_team_ids:
+                available_teams = available_teams.filter(id__in=game_team_ids)
+            else:
+                available_teams = available_teams.filter(current_week=selected_week)
 
         # Filter out teams that this user has already picked this season
         if self.user and self.user.is_authenticated:
@@ -131,12 +136,28 @@ class PostForm(forms.ModelForm):
                     f"Week {week_num} is locked. Picks cannot be made or changed after Sunday morning EST."
                 )
 
-            if team and team.current_week != week_num:
+            if team and not self._team_available_for_week(team, week_num):
                 raise forms.ValidationError(
                     f"{team.team_name} is not available for Week {week_num}. Please choose a team from the displayed matchups."
                 )
 
         return cleaned_data
+
+    def _game_team_ids_for_week(self, week_number):
+        games = Game.objects.filter(
+            season_year=settings.NFL_SEASON_YEAR,
+            week=week_number,
+        )
+        team_ids = set(games.values_list('home_team_id', flat=True))
+        team_ids.update(games.values_list('away_team_id', flat=True))
+        return team_ids
+
+    def _team_available_for_week(self, team, week_number):
+        game_team_ids = self._game_team_ids_for_week(week_number)
+        if game_team_ids:
+            return team.id in game_team_ids
+
+        return team.current_week == week_number
 
     def is_week_locked(self, week_number):
         """Check if the given week is locked (past Sunday morning EST)"""
@@ -144,8 +165,9 @@ class PostForm(forms.ModelForm):
         now = datetime.now(est)
 
         # Calculate the Sunday of the given week
-        # Assuming NFL season starts Week 1 on Sept 5, 2025
-        season_start = datetime(2025, 9, 5, tzinfo=est)  # Friday before Week 1
+        season_start = datetime.combine(settings.NFL_SEASON_START_DATE,
+                                        datetime.min.time())
+        season_start = est.localize(season_start)
         days_to_week = (week_number - 1) * 7
         # Sunday of the given week (Week 1 Sunday is Sept 7)
         week_sunday = season_start + timedelta(days=days_to_week + 2)

@@ -1,6 +1,7 @@
 # your_app/management/commands/fetch_nfl_winners.py
 
 from django.core.management.base import BaseCommand
+from django.conf import settings
 from survivorPool.tasks.nfl import get_nfl_weekly_winners
 from datetime import datetime
 from survivorPool.models import Pick, Team
@@ -25,8 +26,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **kwargs):
-        current_year = datetime.now().year
-        season_start_date = datetime(2025, 9, 5).date()
+        current_year = settings.NFL_SEASON_YEAR
+        season_start_date = settings.NFL_SEASON_START_DATE
         
         # Use specified week or calculate current week
         week = kwargs.get('week')

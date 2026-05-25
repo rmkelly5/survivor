@@ -17,6 +17,36 @@ class Team(models.Model):
     def __str__(self):
         return str(self.team_name)
 
+
+class Game(models.Model):
+    season_year = models.IntegerField()
+    week = models.IntegerField()
+    home_team = models.ForeignKey(
+        Team,
+        related_name='home_games',
+        on_delete=models.CASCADE,
+    )
+    away_team = models.ForeignKey(
+        Team,
+        related_name='away_games',
+        on_delete=models.CASCADE,
+    )
+    game_time = models.DateTimeField(null=True, blank=True)
+    home_spread = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    away_spread = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    home_moneyline = models.IntegerField(null=True, blank=True)
+    away_moneyline = models.IntegerField(null=True, blank=True)
+    home_is_favorite = models.BooleanField(default=False)
+    away_is_favorite = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('season_year', 'week', 'home_team', 'away_team')
+        ordering = ['season_year', 'week', 'game_time']
+
+    def __str__(self):
+        return f"{self.away_team} @ {self.home_team} | {self.season_year} Week {self.week}"
+
+
 class Pick(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     user_name = models.ForeignKey(User, on_delete=models.CASCADE)
