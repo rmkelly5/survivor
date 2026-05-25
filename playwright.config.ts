@@ -31,7 +31,7 @@ export default defineConfig({
       ...process.env,
       DJANGO_DEBUG: 'True',
       DJANGO_ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver',
-      DATABASE_URL: 'sqlite:///browser-test.sqlite3',
+      DATABASE_URL: process.env.DATABASE_URL || 'sqlite:///browser-test.sqlite3',
       NFL_SEASON_YEAR: '2026',
       NFL_SEASON_START_DATE: '2026-09-09',
     },
