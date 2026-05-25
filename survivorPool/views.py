@@ -10,6 +10,7 @@ from .tables import PickTable
 import pandas as pd
 import datetime
 from django.contrib.auth.models import User
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 LEADERBOARD_COLUMNS = ['User Name', 'Team', "IsWin", "Week"]
 
@@ -59,7 +60,7 @@ class HomeView(ListView):
     ordering = ['week']
 
 
-class AddPickView(CreateView):
+class AddPickView(LoginRequiredMixin, CreateView):
     model = Pick
     form_class = PostForm
     template_name = 'add_pick.html'
@@ -72,13 +73,42 @@ class AddPickView(CreateView):
         delta = today - season_start_date
         return min(delta.days // 7 + 1, 18)
 
+    def _get_loaded_weeks(self):
+        return list(
+            Team.objects.filter(current_week__isnull=False)
+            .order_by('current_week')
+            .values_list('current_week', flat=True)
+            .distinct()
+        )
+
+    def _get_default_week(self):
+        current_week = self._get_current_nfl_week()
+        loaded_weeks = self._get_loaded_weeks()
+        if not loaded_weeks:
+            return current_week
+
+        if self.request.user.is_authenticated:
+            picked_weeks = set(
+                Pick.objects.filter(user_name=self.request.user)
+                .values_list('week', flat=True)
+            )
+            for week in loaded_weeks:
+                if week not in picked_weeks:
+                    return week
+
+        if current_week in loaded_weeks:
+            return current_week
+
+        return loaded_weeks[-1]
+
     def _get_display_week(self):
         week_param = self.request.GET.get('week')
         if week_param and week_param.isdigit():
             week = int(week_param)
             if 1 <= week <= 18:
                 return week
-        return self._get_current_nfl_week()
+
+        return self._get_default_week()
 
     def get_initial(self):
         initial = super().get_initial()
@@ -89,6 +119,10 @@ class AddPickView(CreateView):
         kwargs = super(AddPickView, self).get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
+
+    def form_valid(self, form):
+        form.instance.user_name = self.request.user
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from datetime import datetime
+from django.utils import timezone
 from django.urls import reverse
 
 class Team(models.Model):
@@ -20,7 +20,7 @@ class Team(models.Model):
 class Pick(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     user_name = models.ForeignKey(User, on_delete=models.CASCADE)
-    publication_date = models.DateTimeField("date published", default=datetime.now)
+    publication_date = models.DateTimeField("date published", default=timezone.now)
     week = models.IntegerField()
     is_win = models.BooleanField(null=True, blank=True, default=None)
 
@@ -34,4 +34,3 @@ class Pick(models.Model):
         return reverse('home') 
     
     
-

@@ -39,11 +39,33 @@ class PostForm(forms.ModelForm):
         self.week_number = kwargs.pop('week_number', None)
         super(PostForm, self).__init__(*args, **kwargs)
 
+        if self.user and self.user.is_authenticated:
+            self.fields['user_name'].required = False
+            self.fields['user_name'].initial = self.user.id
+
+        selected_week = self.week_number
+        if selected_week is None:
+            if self.is_bound:
+                selected_week = self.data.get(self.add_prefix('week'))
+            else:
+                selected_week = self.initial.get('week')
+
+        try:
+            selected_week = int(selected_week)
+        except (TypeError, ValueError):
+            selected_week = None
+
+        available_teams = Team.objects.all()
+        if selected_week is not None:
+            available_teams = available_teams.filter(current_week=selected_week)
+
         # Filter out teams that this user has already picked this season
         if self.user and self.user.is_authenticated:
             used_team_ids = Pick.objects.filter(
                 user_name=self.user).values_list('team_id', flat=True)
-            available_teams = Team.objects.exclude(id__in=used_team_ids)
+            available_teams = available_teams.exclude(id__in=used_team_ids)
+            self.fields['team'].queryset = available_teams
+        else:
             self.fields['team'].queryset = available_teams
         
         # Customize team display to show matchup and odds (always show even if not logged in)
@@ -90,7 +112,7 @@ class PostForm(forms.ModelForm):
         cleaned_data = super().clean()
         team = cleaned_data.get('team')
         week = cleaned_data.get('week')
-        user_name = cleaned_data.get('user_name')
+        user_name = self.user if self.user and self.user.is_authenticated else cleaned_data.get('user_name')
 
         # Check if user already picked this team in a previous week
         if team and user_name:
@@ -107,6 +129,11 @@ class PostForm(forms.ModelForm):
             if self.is_week_locked(week_num):
                 raise forms.ValidationError(
                     f"Week {week_num} is locked. Picks cannot be made or changed after Sunday morning EST."
+                )
+
+            if team and team.current_week != week_num:
+                raise forms.ValidationError(
+                    f"{team.team_name} is not available for Week {week_num}. Please choose a team from the displayed matchups."
                 )
 
         return cleaned_data
