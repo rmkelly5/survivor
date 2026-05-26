@@ -1,0 +1,93 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+{% if user.is_authenticated %}
+<div class="chat-page-shell">
+<div class="chat-header">
+    <div>
+        <p class="eyebrow">Live Room</p>
+        <h1 class="mb-1">League Chat</h1>
+        <p class="text-muted mb-0">Group chat for picks and banter. Sunday 1:05 PM ET the bot posts everyone's picks.</p>
+    </div>
+    <span class="chat-status">Text only</span>
+</div>
+
+<div id="chat-messages" class="chat-messages chat-messages--page">
+    {% for msg in messages %}
+    <div class="chat-message {% if msg.message_type == 'weekly_lock_summary' %}chat-message--system{% elif msg.author == user %}chat-message--mine{% endif %}" data-id="{{ msg.id }}">
+        <div class="chat-message-header">
+            <strong>{% if msg.author %}{{ msg.author.username }}{% else %}Survivor Bot{% endif %}</strong>
+            <span class="chat-time">{{ msg.created_at|date:"M j, g:i A" }}</span>
+        </div>
+        <pre class="chat-body">{{ msg.body }}</pre>
+    </div>
+    {% empty %}
+    <p class="text-muted" id="chat-empty">No messages yet. Say hello!</p>
+    {% endfor %}
+</div>
+
+<form method="post" class="chat-compose mt-3" id="chat-form">
+    {% csrf_token %}
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    <div class="input-group">
+        <input type="text" name="body" class="form-control" placeholder="Message the league..." maxlength="2000" required autocomplete="off">
+        <button type="submit" class="btn btn-primary">Send</button>
+    </div>
+</form>
+</div>
+
+{% else %}
+<h1>Login to join league chat</h1>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if user.is_authenticated %}
+<script>
+(function() {
+  const box = document.getElementById('chat-messages');
+  if (!box) return;
+  let lastId = 0;
+  box.querySelectorAll('.chat-message').forEach(el => {
+    const id = parseInt(el.dataset.id, 10);
+    if (id > lastId) lastId = id;
+  });
+  box.scrollTop = box.scrollHeight;
+
+  async function poll() {
+    try {
+      const res = await fetch('{% url "chat_poll" %}?after=' + lastId);
+      const data = await res.json();
+      data.messages.forEach(msg => {
+        if (msg.id <= lastId) return;
+        lastId = msg.id;
+        const empty = document.getElementById('chat-empty');
+        if (empty) empty.remove();
+        const div = document.createElement('div');
+        div.className = 'chat-message' + (msg.is_system ? ' chat-message--system' : '');
+        if (msg.author === '{{ user.username|escapejs }}') div.className += ' chat-message--mine';
+        div.dataset.id = msg.id;
+        const header = document.createElement('div');
+        header.className = 'chat-message-header';
+        const author = document.createElement('strong');
+        author.textContent = msg.author;
+        const time = document.createElement('span');
+        time.className = 'chat-time';
+        time.textContent = msg.created_at;
+        const body = document.createElement('pre');
+        body.className = 'chat-body';
+        body.textContent = msg.body;
+        header.appendChild(author);
+        header.appendChild(time);
+        div.appendChild(header);
+        div.appendChild(body);
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      });
+    } catch (e) { /* ignore */ }
+  }
+  setInterval(poll, 20000);
+})();
+</script>
+{% endif %}
+{% endblock %}

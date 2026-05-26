@@ -2,8 +2,10 @@
 {% block content %}
 
 <div class="row justify-content-center">
-    <div class="col-md-5">
-        <h1 class="mb-4">Login</h1>
+    <div class="col-md-5 auth-panel">
+        <p class="eyebrow">League Access</p>
+        <h1 class="mb-2">Login</h1>
+        <p class="text-muted mb-4">Sign in to make picks, view the league board, and talk a little trash.</p>
         <form method="POST">
             {% csrf_token %}
             {{ form.as_p }}

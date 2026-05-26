@@ -1,11 +1,12 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 
 {% block content %}
 {% if user.is_authenticated %}
 
 <div class="picks-header">
-    <h1 class="mb-1">2025 League Picks</h1>
-    <p class="text-muted mb-3" style="font-size:0.85rem;">Weeks as rows · Players as columns · Scroll right to see all players</p>
+    <p class="eyebrow">League Board</p>
+    <h1 class="mb-1">{{ season_year }} League Picks</h1>
+    <p class="text-muted mb-3 picks-subtitle">Scan this week's board, then scroll the full pick history below.</p>
 
     <div class="picks-legend">
         <span class="picks-badge win">WIN</span>
@@ -15,7 +16,25 @@
     </div>
 </div>
 
+{% if current_week_cards %}
+<div class="week-summary-panel mb-4">
+    <h2 class="h5 mb-2">Week {{ current_nfl_week }}</h2>
+    <div class="week-summary-cards">
+        {% for card in current_week_cards %}
+        <div class="week-summary-card picks-cell--{{ card.status|lower }}">
+            <span class="week-summary-player">{{ card.player }}</span>
+            <span class="week-summary-team">{{ card.team }}</span>
+            {% if card.status %}
+            <span class="picks-badge {{ card.status|lower }}">{{ card.status }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% if rows %}
+<h2 class="h5 mb-2">Full Pick Grid</h2>
 <div class="picks-scroll-wrapper">
     <table class="picks-table">
         <thead>
@@ -35,14 +54,37 @@
                     {% if cell.team %}
                         <span class="cell-team">{{ cell.team }}</span>
                         <span class="picks-badge {{ cell.status|lower }}">{{ cell.status }}</span>
+                    {% elif cell.missed_deadline %}
+                        <span class="cell-empty">-</span>
+                        <span class="picks-badge loss">LOSS</span>
                     {% else %}
-                        <span class="cell-empty">—</span>
+                        <span class="cell-empty">-</span>
                     {% endif %}
                 </td>
                 {% endfor %}
             </tr>
             {% endfor %}
         </tbody>
+        <tfoot>
+            <tr>
+                <td class="picks-summary-label picks-sticky">Losses</td>
+                {% for summary in grid_summary %}
+                <td class="picks-summary-cell">{{ summary.losses }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="picks-summary-label picks-sticky">Owed</td>
+                {% for summary in grid_summary %}
+                <td class="picks-summary-cell">${{ summary.owed }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="picks-summary-label picks-sticky">Total Pot</td>
+                {% for summary in grid_summary %}
+                <td class="picks-summary-cell">${{ summary.pot }}</td>
+                {% endfor %}
+            </tr>
+        </tfoot>
     </table>
 </div>
 {% else %}

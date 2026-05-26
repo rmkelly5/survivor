@@ -5,13 +5,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Survivor Pool</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link rel="stylesheet" href="{% static '/style.css' %}?v=3">
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=6">
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
           <a class="navbar-brand" href="{% url 'home' %}">Survivor Pool</a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,17 +22,24 @@
                   <a class="nav-link" href="{% url 'add_pick' %}">Make A Pick</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'league_leaderboard' %}">Leaderboard</a>
-                </li>
-                <li class="nav-item">
                   <a class="nav-link" href="{% url 'allPicks' %}">League Picks</a>
                 </li>
                 <li class="nav-item">
-                  <form method="post" action="{% url 'logout' %}" style="display:inline;margin:0;">
+                  <button type="button" class="nav-link btn-nav-chat" id="chat-nav-toggle">League Chat</button>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'league_leaderboard' %}">Leaderboard</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'pot' %}">Pot</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'rules' %}">Rules</a>
+                </li>
+                <li class="nav-item">
+                  <form method="post" action="{% url 'logout' %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="nav-link" style="background:none;border:none;padding:.75rem .9rem;cursor:pointer;">
-                      Logout
-                    </button>
+                    <button type="submit" class="nav-link btn-nav-logout">Logout</button>
                   </form>
                 </li>
               {% else %}
@@ -44,6 +49,9 @@
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'login' %}">Login</a>
                 </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'rules' %}">Rules</a>
+                </li>
               {% endif %}
             </ul>
           </div>
@@ -52,6 +60,154 @@
     <div class="container">
         {% block content %}{% endblock %}
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    {% if user.is_authenticated %}
+    <aside class="chat-widget" id="chat-widget" aria-label="League chat" aria-hidden="true">
+      <div class="chat-widget-panel">
+        <div class="chat-widget-head">
+          <div>
+            <span class="eyebrow">League Chat</span>
+            <strong>Pool Room</strong>
+          </div>
+          <button type="button" class="chat-widget-close" id="chat-widget-close" aria-label="Close chat">×</button>
+        </div>
+        <div id="chat-widget-messages" class="chat-messages chat-messages--widget">
+          <p class="text-muted" id="chat-widget-loading">Loading chat...</p>
+        </div>
+        <form method="post" class="chat-compose chat-compose--widget" id="chat-widget-form">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="text" name="body" class="form-control" placeholder="Message the league..." maxlength="2000" required autocomplete="off">
+            <button type="submit" class="btn btn-primary">Send</button>
+          </div>
+          <p class="chat-widget-error" id="chat-widget-error" aria-live="polite"></p>
+        </form>
+      </div>
+    </aside>
+    <button type="button" class="chat-fab" id="chat-fab" aria-controls="chat-widget" aria-expanded="false">
+      Chat
+      <span id="chat-fab-dot" class="chat-fab-dot" hidden></span>
+    </button>
+    {% endif %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(button) {
+          var target = document.querySelector(button.getAttribute('data-bs-target'));
+          if (!target) return;
+          button.addEventListener('click', function() {
+            var isOpen = target.classList.toggle('show');
+            button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          });
+        });
+      });
+    </script>
+    {% if user.is_authenticated %}
+    <script>
+      (function() {
+        const widget = document.getElementById('chat-widget');
+        const fab = document.getElementById('chat-fab');
+        const dot = document.getElementById('chat-fab-dot');
+        const close = document.getElementById('chat-widget-close');
+        const navToggle = document.getElementById('chat-nav-toggle');
+        const box = document.getElementById('chat-widget-messages');
+        const form = document.getElementById('chat-widget-form');
+        const input = form ? form.querySelector('input[name="body"]') : null;
+        const error = document.getElementById('chat-widget-error');
+        let lastId = 0;
+        let loaded = false;
+
+        function messageNode(msg) {
+          const div = document.createElement('div');
+          div.className = 'chat-message' + (msg.is_system ? ' chat-message--system' : '');
+          if (msg.author === '{{ user.username|escapejs }}') div.className += ' chat-message--mine';
+          div.dataset.id = msg.id;
+          const header = document.createElement('div');
+          header.className = 'chat-message-header';
+          const author = document.createElement('strong');
+          author.textContent = msg.author;
+          const time = document.createElement('span');
+          time.className = 'chat-time';
+          time.textContent = msg.created_at;
+          const body = document.createElement('pre');
+          body.className = 'chat-body';
+          body.textContent = msg.body;
+          header.appendChild(author);
+          header.appendChild(time);
+          div.appendChild(header);
+          div.appendChild(body);
+          return div;
+        }
+
+        function appendMessages(messages, replace) {
+          if (!box) return;
+          if (replace) box.textContent = '';
+          messages.forEach(function(msg) {
+            if (!replace && msg.id <= lastId) return;
+            lastId = Math.max(lastId, msg.id);
+            box.appendChild(messageNode(msg));
+          });
+          box.scrollTop = box.scrollHeight;
+        }
+
+        async function loadMessages(replace) {
+          try {
+            const url = replace ? '{% url "chat_poll" %}' : '{% url "chat_poll" %}?after=' + lastId;
+            const res = await fetch(url);
+            const data = await res.json();
+            appendMessages(data.messages || [], replace);
+            loaded = true;
+            if (!widget.classList.contains('is-open') && data.messages && data.messages.length) {
+              dot.hidden = false;
+            }
+          } catch (e) { /* leave current chat visible */ }
+        }
+
+        function openChat() {
+          widget.classList.add('is-open');
+          widget.setAttribute('aria-hidden', 'false');
+          fab.setAttribute('aria-expanded', 'true');
+          dot.hidden = true;
+          if (!loaded) loadMessages(true);
+          setTimeout(function() { if (input) input.focus(); }, 50);
+        }
+
+        function closeChat() {
+          widget.classList.remove('is-open');
+          widget.setAttribute('aria-hidden', 'true');
+          fab.setAttribute('aria-expanded', 'false');
+        }
+
+        if (fab) fab.addEventListener('click', openChat);
+        if (navToggle) navToggle.addEventListener('click', openChat);
+        if (close) close.addEventListener('click', closeChat);
+
+        if (form) form.addEventListener('submit', async function(event) {
+          event.preventDefault();
+          if (!input || !input.value.trim()) return;
+          if (error) error.textContent = '';
+          const formData = new FormData(form);
+          try {
+            const res = await fetch('{% url "chat_send" %}', {
+              method: 'POST',
+              body: formData,
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              if (error) error.textContent = data.error || 'Could not send message.';
+              return;
+            }
+            input.value = '';
+            appendMessages([data.message], false);
+          } catch (e) {
+            if (error) error.textContent = 'Could not send message.';
+          }
+        });
+
+        loadMessages(true);
+        setInterval(function() { loadMessages(false); }, 20000);
+      })();
+    </script>
+    {% endif %}
+    {% block extra_js %}{% endblock %}
   </body>
 </html>

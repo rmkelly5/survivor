@@ -1,0 +1,11 @@
+{
+  "name": "survivor-browser-smoke",
+  "private": true,
+  "scripts": {
+    "test:e2e": "C:\\Progra~1\\nodejs\\node.exe node_modules/@playwright/test/cli.js test",
+    "test:e2e:headed": "C:\\Progra~1\\nodejs\\node.exe node_modules/@playwright/test/cli.js test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

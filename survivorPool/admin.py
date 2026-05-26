@@ -1,8 +1,10 @@
 from django.contrib import admin
 
-# Register your models here.
-
-from .models import Team, Pick
+from .models import ChatMessage, Game, Pick, SeasonSettings, Team, WeekLockRun
 
 admin.site.register(Team)
 admin.site.register(Pick)
+admin.site.register(Game)
+admin.site.register(ChatMessage)
+admin.site.register(WeekLockRun)
+admin.site.register(SeasonSettings)

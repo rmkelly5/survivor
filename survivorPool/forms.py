@@ -1,7 +1,7 @@
-from django import forms
-from .models import Pick, Team
-from datetime import datetime, timedelta
-import pytz
+﻿from django import forms
+from django.conf import settings
+from .models import Game, Pick, Team
+from .utils import is_week_locked
 
 CHOICES = ((1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8),
            (9, 9), (10, 10), (11, 11), (12, 12), (13, 13), (14, 14), (15, 15),
@@ -39,11 +39,41 @@ class PostForm(forms.ModelForm):
         self.week_number = kwargs.pop('week_number', None)
         super(PostForm, self).__init__(*args, **kwargs)
 
+        if self.user and self.user.is_authenticated:
+            self.fields['user_name'].required = False
+            self.fields['user_name'].initial = self.user.id
+
+        selected_week = self.week_number
+        if selected_week is None:
+            if self.is_bound:
+                selected_week = self.data.get(self.add_prefix('week'))
+            else:
+                selected_week = self.initial.get('week')
+
+        try:
+            selected_week = int(selected_week)
+        except (TypeError, ValueError):
+            selected_week = None
+
+        available_teams = Team.objects.all()
+        if selected_week is not None:
+            game_team_ids = self._game_team_ids_for_week(selected_week)
+            if game_team_ids:
+                available_teams = available_teams.filter(id__in=game_team_ids)
+            else:
+                available_teams = available_teams.filter(current_week=selected_week)
+
         # Filter out teams that this user has already picked this season
         if self.user and self.user.is_authenticated:
             used_team_ids = Pick.objects.filter(
-                user_name=self.user).values_list('team_id', flat=True)
-            available_teams = Team.objects.exclude(id__in=used_team_ids)
+                user_name=self.user,
+                missed_deadline=False,
+            ).exclude(
+                team__team_name='No Pick',
+            ).values_list('team_id', flat=True)
+            available_teams = available_teams.exclude(id__in=used_team_ids)
+            self.fields['team'].queryset = available_teams
+        else:
             self.fields['team'].queryset = available_teams
         
         # Customize team display to show matchup and odds (always show even if not logged in)
@@ -60,7 +90,7 @@ class PostForm(forms.ModelForm):
         # Team name with favorite indicator
         team_name = str(team.team_name)
         if team.is_favorite:
-            team_name = f"⭐ {team_name}"
+            team_name = f"FAV {team_name}"
         
         # Add opponent
         location = "vs" if team.is_home else "@"
@@ -90,44 +120,49 @@ class PostForm(forms.ModelForm):
         cleaned_data = super().clean()
         team = cleaned_data.get('team')
         week = cleaned_data.get('week')
-        user_name = cleaned_data.get('user_name')
+        user_name = self.user if self.user and self.user.is_authenticated else cleaned_data.get('user_name')
 
         # Check if user already picked this team in a previous week
-        if team and user_name:
-            previous_pick = Pick.objects.filter(user_name=user_name,
-                                                team=team).first()
+        if team and user_name and team.team_name != 'No Pick':
+            previous_pick = Pick.objects.filter(
+                user_name=user_name,
+                team=team,
+                missed_deadline=False,
+            ).first()
             if previous_pick:
                 raise forms.ValidationError(
                     f"You already picked {team.team_name} in Week {previous_pick.week}. You cannot pick the same team twice in a season."
                 )
 
-        # Check if week is locked (Sunday morning or later)
         if week:
             week_num = int(week)
-            if self.is_week_locked(week_num):
+            if is_week_locked(week_num):
                 raise forms.ValidationError(
-                    f"Week {week_num} is locked. Picks cannot be made or changed after Sunday morning EST."
+                    f"Week {week_num} is locked. Picks cannot be made or changed after 1:05 PM ET Sunday."
+                )
+
+            if team and not self._team_available_for_week(team, week_num):
+                raise forms.ValidationError(
+                    f"{team.team_name} is not available for Week {week_num}. Please choose a team from the displayed matchups."
                 )
 
         return cleaned_data
 
-    def is_week_locked(self, week_number):
-        """Check if the given week is locked (past Sunday morning EST)"""
-        est = pytz.timezone('US/Eastern')
-        now = datetime.now(est)
+    def _game_team_ids_for_week(self, week_number):
+        games = Game.objects.filter(
+            season_year=settings.NFL_SEASON_YEAR,
+            week=week_number,
+        )
+        team_ids = set(games.values_list('home_team_id', flat=True))
+        team_ids.update(games.values_list('away_team_id', flat=True))
+        return team_ids
 
-        # Calculate the Sunday of the given week
-        # Assuming NFL season starts Week 1 on Sept 5, 2025
-        season_start = datetime(2025, 9, 5, tzinfo=est)  # Friday before Week 1
-        days_to_week = (week_number - 1) * 7
-        # Sunday of the given week (Week 1 Sunday is Sept 7)
-        week_sunday = season_start + timedelta(days=days_to_week + 2)
-        week_sunday = week_sunday.replace(hour=9,
-                                          minute=0,
-                                          second=0,
-                                          microsecond=0)  # 9 AM EST Sunday
+    def _team_available_for_week(self, team, week_number):
+        game_team_ids = self._game_team_ids_for_week(week_number)
+        if game_team_ids:
+            return team.id in game_team_ids
 
-        return now >= week_sunday
+        return team.current_week == week_number
 
 
 class UpdatePickForm(forms.ModelForm):
@@ -146,7 +181,13 @@ class UpdatePickForm(forms.ModelForm):
 
         # Filter out teams that this user has already picked (except the current one)
         if self.user and self.current_pick:
-            used_team_ids = Pick.objects.filter(user_name=self.user).exclude(
-                id=self.current_pick.id).values_list('team_id', flat=True)
+            used_team_ids = Pick.objects.filter(
+                user_name=self.user,
+                missed_deadline=False,
+            ).exclude(
+                id=self.current_pick.id,
+            ).exclude(
+                team__team_name='No Pick',
+            ).values_list('team_id', flat=True)
             available_teams = Team.objects.exclude(id__in=used_team_ids)
             self.fields['team'].queryset = available_teams

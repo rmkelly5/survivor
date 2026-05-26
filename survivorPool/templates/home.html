@@ -1,59 +1,57 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 
 {% block content %}
 
 {% if user.is_authenticated %}
-    <h1>{{ user.username }}'s Picks</h1>
+    <div class="dashboard-header">
+        <div>
+            <p class="eyebrow">Season Dashboard</p>
+            <h1 class="mb-1">{{ user.username }}'s Picks</h1>
+            <p class="text-muted mb-0">Track your weekly picks, outcomes, and locked misses.</p>
+        </div>
+        <a href="{% url 'add_pick' %}" class="btn btn-primary">+ Make a Pick</a>
+    </div>
 
     {% if object_list %}
-        <div class="picks-list mt-3">
+        <div class="pick-card-grid mt-4">
             {% for pick in object_list %}
-                {% if user.id == pick.user_name.id %}
-                    <div class="pick-item mb-3 p-3 d-flex justify-content-between align-items-center"
-                         style="border-left: 5px solid {% if pick.is_win == None %}#d97706{% elif pick.is_win %}#16a34a{% else %}#dc2626{% endif %};">
-                        <div>
-                            <div class="fw-bold" style="font-size:1.05rem;">
-                                Week {{ pick.week }}: {{ pick.team.team_name }}
-                            </div>
-                            <small class="text-muted">
-                                {{ pick.user_name.first_name }} {{ pick.user_name.last_name }}
-                            </small>
-                        </div>
-                        <div class="text-end">
-                            {% if pick.is_win == None %}
-                                <span class="badge" style="background-color:#d97706;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:3px;">
-                                    TBD
-                                </span>
-                            {% elif pick.is_win %}
-                                <span class="badge" style="background-color:#16a34a;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:3px;">
-                                    WIN
-                                </span>
-                            {% else %}
-                                <span class="badge" style="background-color:#dc2626;font-size:0.85rem;padding:0.4rem 0.9rem;border-radius:3px;">
-                                    LOSS
-                                </span>
-                            {% endif %}
-                        </div>
-                        <div class="ms-3">
-                            <a href="{% url 'pick_details' pick.pk %}" class="btn btn-secondary btn-sm">View</a>
-                        </div>
+                <div class="pick-card pick-card--{% if pick.is_win == None %}tbd{% elif pick.is_win %}win{% else %}loss{% endif %}">
+                    <div class="pick-card-top">
+                        <span class="pick-week">Week {{ pick.week }}</span>
+                        {% if pick.is_win == None %}
+                            <span class="badge badge-tbd">TBD</span>
+                        {% elif pick.is_win %}
+                            <span class="badge badge-win">WIN</span>
+                        {% else %}
+                            <span class="badge badge-loss">LOSS</span>
+                        {% endif %}
                     </div>
-                {% endif %}
+                    <div class="pick-card-team">
+                        {% if pick.missed_deadline %}No pick{% else %}{{ pick.team.team_name }}{% endif %}
+                    </div>
+                    <div class="pick-card-foot">
+                        {% if pick.missed_deadline %}<span class="text-danger small">Missed deadline</span>{% else %}<span class="text-muted small">Submitted pick</span>{% endif %}
+                        <a href="{% url 'pick_details' pick.pk %}" class="btn btn-secondary btn-sm">View</a>
+                    </div>
+                </div>
             {% endfor %}
         </div>
-        <div class="mt-3">
-            <a href="{% url 'add_pick' %}" class="btn btn-primary">+ Make a Pick</a>
-        </div>
     {% else %}
-        <p class="mt-3 text-muted">No picks yet. <a href="{% url 'add_pick' %}">Make your first pick!</a></p>
+        <div class="empty-state mt-4">
+            <h2>No picks yet</h2>
+            <p class="text-muted">Make your first pick to get on the board.</p>
+            <a href="{% url 'add_pick' %}" class="btn btn-primary">Make Your First Pick</a>
+        </div>
     {% endif %}
 
 {% else %}
-    <div class="text-center py-5">
+    <div class="public-hero text-center">
         <h1 class="mb-2">Survivor Pool</h1>
-        <p class="text-muted mb-4" style="font-size:1.1rem;">Pick one NFL team per week. One wrong pick and you're out.</p>
-        <a href="{% url 'login' %}" class="btn btn-primary me-2">Login</a>
-        <a href="{% url 'register' %}" class="btn btn-secondary">Register</a>
+        <p class="text-muted mb-4 hero-sub">Pick one NFL team per week. Losses add to the pot - you keep playing all season.</p>
+        <div class="hero-actions">
+            <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+            <a href="{% url 'register' %}" class="btn btn-secondary">Register</a>
+        </div>
     </div>
 {% endif %}
 

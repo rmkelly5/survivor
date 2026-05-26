@@ -1,0 +1,6 @@
+*.sqlite3
+node_modules/
+playwright-report/
+test-results/
+*.pyc
+__pycache__/
