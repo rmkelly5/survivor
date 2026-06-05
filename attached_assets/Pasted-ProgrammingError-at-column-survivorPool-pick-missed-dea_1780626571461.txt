@@ -1,0 +1,178 @@
+ProgrammingError at /
+column survivorPool_pick.missed_deadline does not exist
+LINE 1: ...rPool_pick"."week", "survivorPool_pick"."is_win", "survivorP...
+                                                             ^
+Request Method:	GET
+Request URL:	https://80062164-00d0-4508-b075-7184675c477a-00-2x8mloqhepurt.janeway.replit.dev/
+Django Version:	5.2.7
+Exception Type:	ProgrammingError
+Exception Value:	
+column survivorPool_pick.missed_deadline does not exist
+LINE 1: ...rPool_pick"."week", "survivorPool_pick"."is_win", "survivorP...
+                                                             ^
+Exception Location:	/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 105, in _execute
+Raised during:	survivorPool.views.HomeView
+Python Executable:	/home/runner/workspace/.pythonlibs/bin/python
+Python Version:	3.12.12
+Python Path:	
+['/home/runner/workspace',
+ '/nix/store/y50fwh2sha400s38m12psfxpvk2c8w39-sitecustomize/lib/python/site-packages',
+ '/nix/store/3idd141l4qkq2s4b1jqwfahmzf739yyb-python3.12-pip-25.0.1/lib/python3.12/site-packages',
+ '/nix/store/iizfzmqjdfvbyx82gqw92glb5zl6m4my-python3-3.12.12/lib/python312.zip',
+ '/nix/store/iizfzmqjdfvbyx82gqw92glb5zl6m4my-python3-3.12.12/lib/python3.12',
+ '/nix/store/iizfzmqjdfvbyx82gqw92glb5zl6m4my-python3-3.12.12/lib/python3.12/lib-dynload',
+ '/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages',
+ '/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages',
+ '/nix/store/y9isj47l7a4i7ycp7njnbgrv7c1kyziv-python3.12-setuptools-80.9.0/lib/python3.12/site-packages']
+Server time:	Thu, 04 Jun 2026 21:23:20 -0500
+Error during template rendering
+In template /home/runner/workspace/survivorPool/templates/home.html, error at line 15
+
+column survivorPool_pick.missed_deadline does not exist LINE 1: ...rPool_pick"."week", "survivorPool_pick"."is_win", "survivorP... ^
+5	{% if user.is_authenticated %}
+6	    <div class="dashboard-header">
+7	        <div>
+8	            <p class="eyebrow">Season Dashboard</p>
+9	            <h1 class="mb-1">{{ user.username }}'s Picks</h1>
+10	            <p class="text-muted mb-0">Track your weekly picks, outcomes, and locked misses.</p>
+11	        </div>
+12	        <a href="{% url 'add_pick' %}" class="btn btn-primary">+ Make a Pick</a>
+13	    </div>
+14	
+15	    {% if object_list %}
+16	        <div class="pick-card-grid mt-4">
+17	            {% for pick in object_list %}
+18	                <div class="pick-card pick-card--{% if pick.is_win == None %}tbd{% elif pick.is_win %}win{% else %}loss{% endif %}">
+19	                    <div class="pick-card-top">
+20	                        <span class="pick-week">Week {{ pick.week }}</span>
+21	                        {% if pick.is_win == None %}
+22	                            <span class="badge badge-tbd">TBD</span>
+23	                        {% elif pick.is_win %}
+24	                            <span class="badge badge-win">WIN</span>
+25	                        {% else %}
+Traceback Switch to copy-and-paste view
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 105, in _execute
+                return self.cursor.execute(sql, params)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+The above exception (column survivorPool_pick.missed_deadline does not exist LINE 1: ...rPool_pick"."week", "survivorPool_pick"."is_win", "survivorP... ^ ) was the direct cause of the following exception:
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/core/handlers/exception.py, line 55, in inner
+                response = get_response(request)
+                               ^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/core/handlers/base.py, line 220, in _get_response
+                response = response.render()
+                                ^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/response.py, line 114, in render
+            self.content = self.rendered_content
+                                ^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/response.py, line 92, in rendered_content
+        return template.render(context, self._request)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/backends/django.py, line 107, in render
+            return self.template.render(context)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 171, in render
+                    return self._render(context)
+                                ^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 163, in _render
+        return self.nodelist.render(context)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 1016, in render
+        return SafeString("".join([node.render_annotated(context) for node in self]))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 977, in render_annotated
+            return self.render(context)
+                        ^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/loader_tags.py, line 159, in render
+            return compiled_parent._render(context)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 163, in _render
+        return self.nodelist.render(context)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 1016, in render
+        return SafeString("".join([node.render_annotated(context) for node in self]))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 977, in render_annotated
+            return self.render(context)
+                        ^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/loader_tags.py, line 65, in render
+                result = block.nodelist.render(context)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 1016, in render
+        return SafeString("".join([node.render_annotated(context) for node in self]))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 977, in render_annotated
+            return self.render(context)
+                        ^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/defaulttags.py, line 327, in render
+                return nodelist.render(context)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 1016, in render
+        return SafeString("".join([node.render_annotated(context) for node in self]))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/base.py, line 977, in render_annotated
+            return self.render(context)
+                        ^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/template/defaulttags.py, line 326, in render
+            if match:
+                    ^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/models/query.py, line 398, in __bool__
+        self._fetch_all()
+             ^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/models/query.py, line 1949, in _fetch_all
+            self._result_cache = list(self._iterable_class(self))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/models/query.py, line 91, in __iter__
+        results = compiler.execute_sql(
+                       …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/models/sql/compiler.py, line 1623, in execute_sql
+            cursor.execute(sql, params)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 122, in execute
+            return super().execute(sql, params)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 79, in execute
+        return self._execute_with_wrappers(
+                    …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 92, in _execute_with_wrappers
+        return executor(sql, params, many, context)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 100, in _execute
+        with self.db.wrap_database_errors:
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/utils.py, line 91, in __exit__
+                raise dj_exc_value.with_traceback(traceback) from exc_value
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
+/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/django/db/backends/utils.py, line 105, in _execute
+                return self.cursor.execute(sql, params)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+Local vars
