@@ -1,9 +1,23 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import ChatMessage
+
+
+def serialize_message(msg):
+    created_at = timezone.localtime(msg.created_at)
+    return {
+        'id': msg.id,
+        'author': msg.author.username if msg.author else 'Survivor Bot',
+        'body': msg.body,
+        'message_type': msg.message_type,
+        'week': msg.week,
+        'created_at': created_at.isoformat(),
+        'is_system': msg.message_type == ChatMessage.MESSAGE_WEEKLY_LOCK,
+    }
 
 
 @login_required
@@ -36,18 +50,7 @@ def chat_poll_api(request):
     else:
         qs = qs.order_by('-created_at', '-id')[:200]
         qs = sorted(qs, key=lambda msg: (msg.created_at, msg.id))
-    payload = [
-        {
-            'id': msg.id,
-            'author': msg.author.username if msg.author else 'Survivor Bot',
-            'body': msg.body,
-            'message_type': msg.message_type,
-            'week': msg.week,
-            'created_at': msg.created_at.strftime('%b %d, %I:%M %p'),
-            'is_system': msg.message_type == ChatMessage.MESSAGE_WEEKLY_LOCK,
-        }
-        for msg in qs
-    ]
+    payload = [serialize_message(msg) for msg in qs]
     return JsonResponse({'messages': payload})
 
 
@@ -65,14 +68,4 @@ def chat_send_api(request):
         body=body,
         message_type=ChatMessage.MESSAGE_USER,
     )
-    return JsonResponse({
-        'message': {
-            'id': msg.id,
-            'author': request.user.username,
-            'body': msg.body,
-            'message_type': msg.message_type,
-            'week': msg.week,
-            'created_at': msg.created_at.strftime('%b %d, %I:%M %p'),
-            'is_system': False,
-        }
-    })
+    return JsonResponse({'message': serialize_message(msg)})
