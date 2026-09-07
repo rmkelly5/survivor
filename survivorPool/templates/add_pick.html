@@ -31,6 +31,31 @@
     {% if week_locked %}
     <div class="alert alert-warning">Week {{ display_week }} is locked (past Sunday 1:05 PM ET).</div>
     {% endif %}
+
+    {% if biggest_favorites %}
+    <section class="biggest-favorite-banner" aria-labelledby="biggest-favorite-title">
+        <div class="biggest-favorite-heading">
+            <span class="biggest-favorite-kicker">Best odds to win</span>
+            <h2 id="biggest-favorite-title">
+                Biggest Favorite{% if biggest_favorites|length > 1 %}s{% endif %} — Week {{ display_week }}
+            </h2>
+        </div>
+        <div class="biggest-favorite-teams">
+            {% for favorite in biggest_favorites %}
+            <div class="biggest-favorite-team">
+                {% if favorite.logo %}
+                <img src="{{ favorite.logo }}" loading="lazy" decoding="async"
+                     onerror="this.style.display='none'"
+                     alt="" class="biggest-favorite-logo">
+                {% endif %}
+                <span class="biggest-favorite-name">{{ favorite.team.team_name }}</span>
+                <span class="biggest-favorite-odds">{{ favorite.moneyline }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <p class="text-muted mb-3">Week {{ display_week }} matchups - tap a team to select your pick</p>
 
     {% if matchups %}
@@ -112,6 +137,70 @@
     max-width: 200px;
 }
 
+.biggest-favorite-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 0 0 20px;
+    padding: 18px 20px;
+    color: #10233d;
+    background: linear-gradient(135deg, #fff8dc 0%, #fffdf4 100%);
+    border: 1px solid #e4bd42;
+    border-left: 6px solid #d79f00;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(95, 67, 0, 0.1);
+}
+
+.biggest-favorite-kicker {
+    display: block;
+    margin-bottom: 2px;
+    color: #806000;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.biggest-favorite-heading h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.biggest-favorite-teams {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.biggest-favorite-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    background: #fff;
+    border: 1px solid rgba(215, 159, 0, 0.35);
+    border-radius: 8px;
+}
+
+.biggest-favorite-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.biggest-favorite-name {
+    font-weight: 800;
+}
+
+.biggest-favorite-odds {
+    color: #806000;
+    font-size: 0.86rem;
+    font-weight: 800;
+}
+
 .matchups-grid {
     display: flex;
     flex-direction: column;
@@ -124,6 +213,18 @@
     border-radius: 10px;
     padding: 12px 16px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+@media (max-width: 640px) {
+    .biggest-favorite-banner {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .biggest-favorite-teams {
+        justify-content: flex-start;
+        width: 100%;
+    }
 }
 
 .game-time {

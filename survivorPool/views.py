@@ -161,6 +161,8 @@ class AddPickView(LoginRequiredMixin, CreateView):
         else:
             matchups = self._matchups_from_teams(display_week, used_team_ids, logo_url)
 
+        biggest_favorites = self._get_biggest_favorites(matchups)
+
         selected_team_id = None
         if self.request.method == 'POST':
             try:
@@ -169,11 +171,34 @@ class AddPickView(LoginRequiredMixin, CreateView):
                 pass
 
         context['matchups'] = matchups
+        context['biggest_favorites'] = biggest_favorites
         context['used_team_ids'] = used_team_ids
         context['display_week'] = display_week
         context['selected_team_id'] = selected_team_id
         context['week_locked'] = is_week_locked(display_week)
         return context
+
+    def _get_biggest_favorites(self, matchups):
+        teams_with_odds = []
+        for matchup in matchups:
+            for side in ('away', 'home'):
+                team = matchup.get(side)
+                moneyline = matchup.get(f'{side}_moneyline')
+                if team is not None and moneyline is not None:
+                    teams_with_odds.append({
+                        'team': team,
+                        'logo': matchup.get(f'{side}_logo', ''),
+                        'moneyline': moneyline,
+                    })
+
+        if not teams_with_odds:
+            return []
+
+        best_moneyline = min(team['moneyline'] for team in teams_with_odds)
+        return [
+            team for team in teams_with_odds
+            if team['moneyline'] == best_moneyline
+        ]
 
     def _matchup_from_game(self, game, used_team_ids, logo_url):
         return {

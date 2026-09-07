@@ -49,6 +49,74 @@ class AddPickViewTests(TestCase):
 
         self.assertEqual(view._get_display_week(), 2)
 
+    def test_biggest_favorite_uses_lowest_moneyline(self):
+        view = AddPickView()
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        favorites = view._get_biggest_favorites([
+            {
+                'home': bills,
+                'home_logo': 'bills.png',
+                'home_moneyline': -240,
+                'away': dolphins,
+                'away_logo': 'dolphins.png',
+                'away_moneyline': 190,
+            },
+        ])
+
+        self.assertEqual(
+            [(favorite['team'], favorite['moneyline']) for favorite in favorites],
+            [(bills, -240)],
+        )
+
+    def test_biggest_favorite_includes_all_tied_teams(self):
+        view = AddPickView()
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        favorites = view._get_biggest_favorites([
+            {
+                'home': bills,
+                'home_logo': '',
+                'home_moneyline': -300,
+                'away': dolphins,
+                'away_logo': '',
+                'away_moneyline': 240,
+            },
+            {
+                'home': chiefs,
+                'home_logo': '',
+                'home_moneyline': -300,
+                'away': raiders,
+                'away_logo': '',
+                'away_moneyline': 250,
+            },
+        ])
+
+        self.assertEqual(
+            [favorite['team'] for favorite in favorites],
+            [bills, chiefs],
+        )
+
+    def test_biggest_favorite_is_empty_without_moneylines(self):
+        view = AddPickView()
+        bills = Team.objects.create(team_name='Bills')
+
+        self.assertEqual(
+            view._get_biggest_favorites([
+                {
+                    'home': bills,
+                    'home_logo': '',
+                    'home_moneyline': None,
+                    'away': None,
+                    'away_logo': '',
+                    'away_moneyline': None,
+                },
+            ]),
+            [],
+        )
+
 
 class PostFormTests(TestCase):
     def test_team_queryset_is_limited_to_selected_week(self):
