@@ -20,17 +20,19 @@ def get_espn_week_matchups(year, week):
     response = requests.get(url)
     response.raise_for_status()
 
-    matchups = set()
+    matchups = {}
     for event in response.json().get('events', []):
         competitors = event.get('competitions', [{}])[0].get('competitors', [])
         home = next((c for c in competitors if c.get('homeAway') == 'home'), None)
         away = next((c for c in competitors if c.get('homeAway') == 'away'), None)
-        if not home or not away:
+        event_date = event.get('date')
+        if not home or not away or not event_date:
             continue
 
         home_name = extract_team_nickname(home['team']['displayName'])
         away_name = extract_team_nickname(away['team']['displayName'])
-        matchups.add(frozenset((home_name, away_name)))
+        kickoff = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
+        matchups[(home_name, away_name)] = kickoff
 
     return matchups
 
@@ -115,8 +117,17 @@ class Command(BaseCommand):
             for game in games:
                 home_team_name = extract_team_nickname(game['home_team'])
                 away_team_name = extract_team_nickname(game['away_team'])
+                commence_time_utc = datetime.fromisoformat(
+                    game['commence_time'].replace('Z', '+00:00')
+                )
+                scheduled_kickoff = scheduled_matchups.get(
+                    (home_team_name, away_team_name)
+                )
 
-                if frozenset((home_team_name, away_team_name)) not in scheduled_matchups:
+                if (
+                    scheduled_kickoff is None
+                    or abs((commence_time_utc - scheduled_kickoff).total_seconds()) > 3600
+                ):
                     self.stdout.write(
                         self.style.WARNING(
                             f'Skipping non-Week {week} game: {away_team_name} @ {home_team_name}'
@@ -138,9 +149,6 @@ class Command(BaseCommand):
                     continue
 
                 # Parse game time and convert to EST
-                commence_time_utc = datetime.fromisoformat(
-                    game['commence_time'].replace('Z', '+00:00')
-                )
                 commence_time = commence_time_utc.astimezone(est_tz)
 
                 spread = None

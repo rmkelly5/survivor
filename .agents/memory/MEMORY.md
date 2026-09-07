@@ -1,0 +1,1 @@
+- [Shared season database](shared-season-database.md) — development management commands can change live league data because both environments use the shared Neon secret.
