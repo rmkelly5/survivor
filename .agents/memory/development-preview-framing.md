@@ -13,4 +13,6 @@ yet Replit Preview showed an unreachable-app message because
 **How to apply:** Preserve development-only iframe permission alongside the
 existing development cookie settings. Verify the actual `.replit.dev` response
 headers when Preview fails; a successful localhost request does not prove the
-iframe can render.
+iframe can render. Also keep a single web port mapping: an unused second port
+can leave the Preview pane targeting a dead service even while port 5000 is
+healthy.
