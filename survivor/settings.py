@@ -72,11 +72,14 @@ if DEBUG:
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_SECURE = True
+    # Replit's development Preview embeds the app in a cross-origin iframe.
+    X_FRAME_OPTIONS = 'ALLOWALL'
 else:
     CSRF_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_SECURE = True
+    X_FRAME_OPTIONS = 'DENY'
 
 # Tell Django it's behind an HTTPS proxy (Replit serves HTTPS externally)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
