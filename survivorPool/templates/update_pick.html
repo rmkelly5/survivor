@@ -7,12 +7,12 @@
     
     {% if is_locked %}
         <div class="alert alert-warning" role="alert">
-            <strong>Week {{ pick.week }} is Locked!</strong><br>
-            Picks cannot be changed after Sunday morning 9 AM EST.
+            <strong>This pick is locked.</strong><br>
+            {{ pick.team.team_name }}'s game has started, so the pick can no longer be changed.
         </div>
     {% else %}
         <div class="alert alert-info" role="alert">
-            <strong>Reminder:</strong> You can change this pick until Sunday morning 9 AM EST of Week {{ pick.week }}. Once locked, no changes can be made.
+            <strong>Reminder:</strong> You can change this pick until {{ pick.team.team_name }}'s game starts.
         </div>
     {% endif %}
     

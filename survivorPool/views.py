@@ -16,6 +16,7 @@ from .utils import (
     build_leaderboard_rows,
     build_picks_grid,
     get_current_nfl_week,
+    is_pick_locked,
     is_week_locked,
 )
 
@@ -299,15 +300,15 @@ class UpdatePickView(OwnerPickQuerysetMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pick = self.get_object()
-        context['is_locked'] = is_week_locked(pick.week)
+        context['is_locked'] = is_pick_locked(pick)
         return context
 
     def form_valid(self, form):
         pick = self.get_object()
-        if is_week_locked(pick.week):
+        if is_pick_locked(pick):
             form.add_error(
                 None,
-                f"Week {pick.week} is locked. Picks cannot be changed after 1:05 PM ET Sunday.",
+                f"{pick.team.team_name}'s game has started, so this pick can no longer be changed.",
             )
             return self.form_invalid(form)
         return super().form_valid(form)

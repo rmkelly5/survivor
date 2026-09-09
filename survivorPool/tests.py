@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.management import call_command
 from django.test import RequestFactory, TestCase
+from django.utils import timezone
+import datetime
 from unittest.mock import patch
 
 from .forms import PostForm
@@ -226,6 +228,95 @@ class AddPickSecurityTests(TestCase):
         ]:
             response = self.client.get(path)
             self.assertEqual(response.status_code, 302)
+
+    def test_pick_can_be_changed_until_selected_game_starts(self):
+        user = User.objects.create_user(username='owner', password='password')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() + datetime.timedelta(hours=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() + datetime.timedelta(hours=3),
+        )
+        pick = Pick.objects.create(user_name=user, team=bills, week=1)
+        self.client.login(username='owner', password='password')
+
+        response = self.client.post(f'/pick/edit/{pick.pk}', {'team': chiefs.id})
+
+        self.assertRedirects(response, '/', fetch_redirect_response=False)
+        pick.refresh_from_db()
+        self.assertEqual(pick.team, chiefs)
+
+    def test_pick_cannot_be_changed_after_selected_game_starts(self):
+        user = User.objects.create_user(username='owner', password='password')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() - datetime.timedelta(minutes=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() + datetime.timedelta(hours=3),
+        )
+        pick = Pick.objects.create(user_name=user, team=bills, week=1)
+        self.client.login(username='owner', password='password')
+
+        response = self.client.post(f'/pick/edit/{pick.pk}', {'team': chiefs.id})
+
+        self.assertEqual(response.status_code, 200)
+        pick.refresh_from_db()
+        self.assertEqual(pick.team, bills)
+        self.assertContains(response, "game has started")
+
+    def test_pick_cannot_be_changed_to_team_whose_game_has_started(self):
+        user = User.objects.create_user(username='owner', password='password')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() + datetime.timedelta(hours=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() - datetime.timedelta(minutes=1),
+        )
+        pick = Pick.objects.create(user_name=user, team=bills, week=1)
+        self.client.login(username='owner', password='password')
+
+        response = self.client.post(f'/pick/edit/{pick.pk}', {'team': chiefs.id})
+
+        self.assertEqual(response.status_code, 200)
+        pick.refresh_from_db()
+        self.assertEqual(pick.team, bills)
+        self.assertContains(response, "game has already started")
 
 
 class BaseNavigationTests(TestCase):

@@ -1,7 +1,7 @@
 ﻿from django import forms
 from django.conf import settings
 from .models import Game, Pick, Team
-from .utils import is_week_locked
+from .utils import is_pick_locked, is_team_game_started, is_week_locked
 
 CHOICES = ((1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8),
            (9, 9), (10, 10), (11, 11), (12, 12), (13, 13), (14, 14), (15, 15),
@@ -189,5 +189,26 @@ class UpdatePickForm(forms.ModelForm):
             ).exclude(
                 team__team_name='No Pick',
             ).values_list('team_id', flat=True)
-            available_teams = Team.objects.exclude(id__in=used_team_ids)
+            game_team_ids = PostForm()._game_team_ids_for_week(self.current_pick.week)
+            if game_team_ids:
+                available_teams = Team.objects.filter(id__in=game_team_ids)
+            else:
+                available_teams = Team.objects.filter(current_week=self.current_pick.week)
+            available_teams = available_teams.exclude(id__in=used_team_ids)
             self.fields['team'].queryset = available_teams
+
+    def clean(self):
+        cleaned_data = super().clean()
+        team = cleaned_data.get('team')
+
+        if self.current_pick and is_pick_locked(self.current_pick):
+            raise forms.ValidationError(
+                f"{self.current_pick.team.team_name}'s game has started, so this pick can no longer be changed."
+            )
+
+        if team and self.current_pick and is_team_game_started(team, self.current_pick.week):
+            raise forms.ValidationError(
+                f"{team.team_name}'s game has already started. Please choose a team whose game has not started."
+            )
+
+        return cleaned_data

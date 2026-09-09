@@ -10,8 +10,9 @@ import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
+from django.utils import timezone
 
-from .models import Game, Pick, SeasonSettings
+from .models import Game, Pick, SeasonSettings, Team
 
 EST = pytz.timezone('US/Eastern')
 WEEK_LOCK_HOUR = 13
@@ -45,6 +46,36 @@ def get_week_lock_datetime(week_number: int, season_start_date=None) -> datetime
 def is_week_locked(week_number: int) -> bool:
     now = datetime.datetime.now(EST)
     return now >= get_week_lock_datetime(week_number)
+
+
+def get_team_game_time(team: Team, week_number: int):
+    """Return the scheduled kickoff for a team in a given week."""
+    game = (
+        Game.objects.filter(
+            Q(home_team=team) | Q(away_team=team),
+            season_year=settings.NFL_SEASON_YEAR,
+            week=week_number,
+        )
+        .exclude(game_time__isnull=True)
+        .first()
+    )
+    if game:
+        return game.game_time
+    if team.current_week == week_number:
+        return team.game_time
+    return None
+
+
+def is_team_game_started(team: Team, week_number: int) -> bool:
+    """Use kickoff as the lock; fall back to the weekly lock if no time exists."""
+    game_time = get_team_game_time(team, week_number)
+    if game_time is None:
+        return is_week_locked(week_number)
+    return timezone.now() >= game_time
+
+
+def is_pick_locked(pick: Pick) -> bool:
+    return pick.missed_deadline or is_team_game_started(pick.team, pick.week)
 
 
 def pick_status(is_win) -> str:
