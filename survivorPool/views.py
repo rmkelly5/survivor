@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from django_tables2 import SingleTableView
@@ -387,10 +387,4 @@ def rules_view(request):
 
 @login_required
 def pot_view(request):
-    rows = build_leaderboard_rows()
-    total_pot = sum(row['pot_contribution'] for row in rows)
-    return render(request, 'pot.html', {
-        'leaderboard_rows': rows,
-        'total_pot': total_pot,
-        'season_year': settings.NFL_SEASON_YEAR,
-    })
+    return redirect('league_leaderboard')

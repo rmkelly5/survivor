@@ -254,6 +254,23 @@ class BaseNavigationTests(TestCase):
         self.assertNotContains(response, 'Admin Console')
         self.assertNotContains(response, 'nav-link-admin')
 
+    def test_pot_is_removed_from_navigation_and_redirects_to_leaderboard(self):
+        User.objects.create_user(
+            username='player',
+            password='password',
+        )
+        self.client.login(username='player', password='password')
+
+        response = self.client.get('/')
+        self.assertNotContains(response, 'href="/pot/"')
+
+        response = self.client.get('/pot/')
+        self.assertRedirects(
+            response,
+            '/league_leaderboard/',
+            fetch_redirect_response=False,
+        )
+
 
 class UtilsTests(TestCase):
     def test_build_picks_grid_without_pandas(self):
