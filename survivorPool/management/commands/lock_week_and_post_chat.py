@@ -62,8 +62,6 @@ class Command(BaseCommand):
             league_users = User.objects.filter(
                 username__in=league_usernames,
                 is_active=True,
-                is_staff=False,
-                is_superuser=False,
             )
             for user in league_users:
                 if Pick.objects.filter(user_name=user, week=week).exists():

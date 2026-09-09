@@ -94,8 +94,6 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
     """Win/loss counts and simple pot contribution per player."""
     users = User.objects.filter(
         is_active=True,
-        is_staff=False,
-        is_superuser=False,
     ).annotate(
         win_count=Count('pick', filter=Q(pick__is_win=True)),
         loss_count=Count('pick', filter=Q(pick__is_win=False)),
@@ -119,8 +117,6 @@ def get_league_member_usernames() -> list[str]:
         Pick.objects.filter(
             missed_deadline=False,
             user_name__is_active=True,
-            user_name__is_staff=False,
-            user_name__is_superuser=False,
         )
         .order_by('user_name__username')
         .values_list('user_name__username', flat=True)

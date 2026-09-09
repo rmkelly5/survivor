@@ -256,7 +256,7 @@ class UtilsTests(TestCase):
         self.assertEqual(grid['pick_lookup'][(1, 'alice')]['status'], 'LOSS')
         self.assertTrue(grid['pick_lookup'][(1, 'alice')]['missed_deadline'])
 
-    def test_leaderboard_excludes_admin_users(self):
+    def test_leaderboard_includes_staff_and_superusers(self):
         User.objects.create_superuser(username='admin', password='password')
         player = User.objects.create_user(username='player')
         team = Team.objects.create(team_name='Bills')
@@ -265,16 +265,20 @@ class UtilsTests(TestCase):
         from .utils import build_leaderboard_rows
         rows = build_leaderboard_rows()
 
-        self.assertEqual([row['username'] for row in rows], ['player'])
+        self.assertEqual(
+            [row['username'] for row in rows],
+            ['player', 'admin'],
+        )
 
 
 class LockWeekCommandTests(TestCase):
     def test_lock_week_posts_chat_and_auto_loss(self):
         user = User.objects.create_user(username='late')
         stranger = User.objects.create_user(username='stranger')
-        User.objects.create_superuser(username='admin', password='password')
+        admin = User.objects.create_superuser(username='admin', password='password')
         team = Team.objects.create(team_name='Bills')
         Pick.objects.create(user_name=user, team=team, week=1, is_win=True)
+        Pick.objects.create(user_name=admin, team=team, week=1, is_win=True)
 
         with patch('survivorPool.management.commands.lock_week_and_post_chat.is_week_locked', return_value=True):
             call_command('lock_week_and_post_chat', '--week=3', '--force')
@@ -282,7 +286,13 @@ class LockWeekCommandTests(TestCase):
         pick = Pick.objects.get(user_name=user, week=3)
         self.assertFalse(pick.is_win)
         self.assertTrue(pick.missed_deadline)
-        self.assertFalse(Pick.objects.filter(user_name__username='admin', week=3).exists())
+        self.assertTrue(
+            Pick.objects.filter(
+                user_name=admin,
+                week=3,
+                missed_deadline=True,
+            ).exists()
+        )
         self.assertFalse(Pick.objects.filter(user_name=stranger, week=3).exists())
         self.assertTrue(WeekLockRun.objects.filter(week=3).exists())
         msg = ChatMessage.objects.get(message_type=ChatMessage.MESSAGE_WEEKLY_LOCK)
