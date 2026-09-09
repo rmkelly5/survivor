@@ -228,6 +228,33 @@ class AddPickSecurityTests(TestCase):
             self.assertEqual(response.status_code, 302)
 
 
+class BaseNavigationTests(TestCase):
+    def test_superuser_sees_admin_console_link(self):
+        User.objects.create_superuser(
+            username='admin',
+            password='password',
+        )
+        self.client.login(username='admin', password='password')
+
+        response = self.client.get('/')
+
+        self.assertContains(response, 'Admin Console')
+        self.assertContains(response, 'href="/admin/"')
+        self.assertContains(response, 'nav-link-admin')
+
+    def test_regular_user_does_not_see_admin_console_link(self):
+        User.objects.create_user(
+            username='player',
+            password='password',
+        )
+        self.client.login(username='player', password='password')
+
+        response = self.client.get('/')
+
+        self.assertNotContains(response, 'Admin Console')
+        self.assertNotContains(response, 'nav-link-admin')
+
+
 class UtilsTests(TestCase):
     def test_build_picks_grid_without_pandas(self):
         user = User.objects.create_user(username='alice')

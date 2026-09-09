@@ -195,6 +195,18 @@ body {
     border-bottom-color: var(--blue);
 }
 
+.nav-link-admin {
+    color: #f08a8a !important;
+    font-weight: 800;
+}
+
+.nav-link-admin:hover,
+.nav-link-admin:focus,
+.nav-link-admin.active {
+    color: #ffb3b3 !important;
+    border-bottom-color: #8b1e2d;
+}
+
 /* -- Main Container --------------------------------- */
 .container {
     background: var(--surface);
