@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="ops-page">
+  <header class="ops-hero">
+    <div>
+      <p class="ops-kicker">Staff workspace / weekly control room</p>
+      <h1 class="ops-title">League operations</h1>
+      <p class="ops-intro">Keep the league’s football data in step with the real world. Review the selected week before running a command.</p>
+    </div>
+    <div class="ops-context" aria-label="Current league context">
+      <div>
+        <span>Season</span>
+        <strong>{{ current_season }}</strong>
+      </div>
+      <div class="ops-context-divider"></div>
+      <div>
+        <span>Selected week</span>
+        <strong>Week {{ selected_week }}</strong>
+      </div>
+    </div>
+  </header>
+
+  {% if messages %}
+    <section class="ops-feedback-stack" aria-label="Command feedback">
+      {% for message in messages %}
+        <div class="ops-feedback ops-feedback--{{ message.tags|default:'info' }}">{{ message }}</div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if command_output %}
+    <section class="ops-output" aria-live="polite">
+      <div class="ops-output-head">
+        <div>
+          <p class="ops-kicker">Latest command output</p>
+          <h2>{{ command_title|default:"Operation complete" }}</h2>
+        </div>
+        <span class="ops-status-pill ops-status-pill--{{ command_status|default:'success' }}">{{ command_status|default:"Success" }}</span>
+      </div>
+      <pre>{{ command_output }}</pre>
+    </section>
+  {% endif %}
+
+  <section class="ops-status-strip" aria-labelledby="ops-status-heading">
+    <div class="ops-section-label">
+      <p class="ops-kicker">At a glance</p>
+      <h2 id="ops-status-heading">Week {{ selected_week }} readiness</h2>
+    </div>
+    <div class="ops-status-grid">
+      <div class="ops-metric">
+        <span class="ops-metric-label">Schedule</span>
+        <strong>{{ schedule_count|default:"—" }}</strong>
+        <small>games loaded</small>
+      </div>
+      <div class="ops-metric">
+        <span class="ops-metric-label">Teams</span>
+        <strong>{{ team_count|default:"—" }}</strong>
+        <small>teams mapped</small>
+      </div>
+      <div class="ops-metric">
+        <span class="ops-metric-label">Odds</span>
+        <strong>{{ odds_count|default:"—" }}</strong>
+        <small>lines available</small>
+      </div>
+      <div class="ops-metric ops-metric--state">
+        <span class="ops-metric-label">Pool state</span>
+        <strong>{{ operational_status|default:"Review" }}</strong>
+        <small>{{ status_detail|default:"Confirm data before opening picks." }}</small>
+      </div>
+    </div>
+    <div class="ops-pick-counts" aria-label="Pick outcome counts">
+      <span>{{ pick_counts.total }} picks</span>
+      <span>{{ pick_counts.pending }} pending</span>
+      <span>{{ pick_counts.wins }} wins</span>
+      <span>{{ pick_counts.losses }} losses</span>
+    </div>
+  </section>
+
+  <section class="ops-toolbar" aria-label="Week selection">
+    <div>
+      <p class="ops-kicker">Scope</p>
+      <h2>Choose the week to operate</h2>
+    </div>
+    <form method="get" class="ops-week-form">
+      <label for="ops-week">NFL week</label>
+      <select id="ops-week" name="week" class="form-select">
+        {% for option in week_options %}
+          <option value="{{ option }}" {% if option == selected_week %}selected{% endif %}>Week {{ option }}</option>
+        {% empty %}
+          {% for option in "123456789012345678" %}
+            <option value="{{ forloop.counter }}" {% if forloop.counter == selected_week %}selected{% endif %}>Week {{ forloop.counter }}</option>
+          {% endfor %}
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary">Load week</button>
+    </form>
+  </section>
+
+  <div class="ops-command-grid">
+    <article class="ops-command-card ops-command-card--schedule">
+      <div class="ops-card-top">
+        <span class="ops-command-index">01</span>
+        <span class="ops-command-state">External schedule</span>
+      </div>
+      <h2>Load schedule</h2>
+      <p>Fetch the official NFL schedule and sync game times for this week.</p>
+      <div class="ops-consequence"><strong>Writes:</strong> game records and kickoff times.</div>
+      <form method="post" class="ops-action-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="schedule">
+        <input type="hidden" name="week" value="{{ selected_week }}">
+        <button type="submit" class="btn btn-primary">Run schedule sync</button>
+      </form>
+    </article>
+
+    <article class="ops-command-card ops-command-card--odds">
+      <div class="ops-card-top">
+        <span class="ops-command-index">02</span>
+        <span class="ops-command-state">Market data</span>
+      </div>
+      <h2>Refresh odds</h2>
+      <p>Pull current lines and align them to the schedule already on file.</p>
+      <div class="ops-consequence"><strong>Writes:</strong> spreads, moneylines, and favorites.</div>
+      <form method="post" class="ops-action-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="odds">
+        <input type="hidden" name="week" value="{{ selected_week }}">
+        <button type="submit" class="btn btn-primary">Run odds refresh</button>
+      </form>
+    </article>
+
+    <article class="ops-command-card ops-command-card--deadline">
+      <div class="ops-card-top">
+        <span class="ops-command-index">03</span>
+        <span class="ops-command-state">Irreversible</span>
+      </div>
+      <h2>Lock Sunday deadline</h2>
+      <p>Record automatic losses for players who missed the Sunday deadline and post the summary to chat.</p>
+      <div class="ops-consequence ops-consequence--warn"><strong>Consequence:</strong> missing entries become losses; submitted picks still lock at their game’s kickoff.</div>
+      <form method="post" class="ops-action-form" onsubmit="return confirm('Process the Sunday deadline for Week {{ selected_week }}? Missing picks will become losses.');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="deadline">
+        <input type="hidden" name="week" value="{{ selected_week }}">
+        <button type="submit" class="btn btn-danger">Lock Sunday deadline</button>
+      </form>
+    </article>
+
+    <article class="ops-command-card ops-command-card--results">
+      <div class="ops-card-top">
+        <span class="ops-command-index">04</span>
+        <span class="ops-command-state">Final outcomes</span>
+      </div>
+      <h2>Post results</h2>
+      <p>Fetch winners and update every pick outcome for the selected week.</p>
+      <div class="ops-consequence"><strong>Writes:</strong> win and loss results used by standings.</div>
+      <form method="post" class="ops-action-form" onsubmit="return confirm('Post results for Week {{ selected_week }}? This updates league standings.');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="results">
+        <input type="hidden" name="week" value="{{ selected_week }}">
+        <button type="submit" class="btn btn-primary">Post week results</button>
+      </form>
+    </article>
+  </div>
+
+  <aside class="ops-runbook-note">
+    <span class="ops-note-mark">!</span>
+    <div>
+      <strong>Run in order</strong>
+      <p>Schedule first, then odds. Lock the deadline only after verifying the matchup page. Post results after games finish.</p>
+    </div>
+  </aside>
+</main>
+{% endblock %}

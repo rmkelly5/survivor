@@ -1,16 +1,20 @@
 import datetime
+import io
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from django_tables2 import SingleTableView
 
 from .forms import PostForm
-from .models import Game, Pick, Team
+from .models import Game, Pick, Team, WeekLockRun
 from .tables import PickTable
 from .utils import (
     build_leaderboard_rows,
@@ -395,6 +399,97 @@ def all_picks_view(request):
 
 def rules_view(request):
     return render(request, 'rules.html')
+
+
+@staff_member_required
+def league_operations_view(request):
+    try:
+        selected_week = int(request.POST.get('week') or request.GET.get('week') or get_current_nfl_week())
+    except (TypeError, ValueError):
+        selected_week = get_current_nfl_week()
+    selected_week = max(1, min(selected_week, 18))
+
+    command_output = ''
+    command_title = ''
+    command_status = ''
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        commands = {
+            'schedule': ('fetch_nfl_schedule', 'Schedule sync', {'year': settings.NFL_SEASON_YEAR}),
+            'odds': ('fetch_nfl_odds', 'Odds refresh', {'year': settings.NFL_SEASON_YEAR}),
+            'deadline': ('lock_week_and_post_chat', 'Sunday deadline', {}),
+            'results': ('fetch_nfl_winners', 'Week results', {}),
+        }
+        command_config = commands.get(action)
+        if command_config:
+            command_name, command_title, command_options = command_config
+            output = io.StringIO()
+            try:
+                call_command(
+                    command_name,
+                    week=selected_week,
+                    stdout=output,
+                    stderr=output,
+                    **command_options,
+                )
+                command_status = 'success'
+            except Exception as exc:
+                command_status = 'error'
+                output.write(f'\nOperation failed: {exc}')
+            command_output = output.getvalue().strip() or 'Command completed without additional output.'
+        else:
+            command_title = 'Unknown operation'
+            command_status = 'error'
+            command_output = 'The requested operation is not available.'
+
+    games = Game.objects.filter(
+        season_year=settings.NFL_SEASON_YEAR,
+        week=selected_week,
+    )
+    schedule_count = games.count()
+    team_ids = set(games.values_list('home_team_id', flat=True))
+    team_ids.update(games.values_list('away_team_id', flat=True))
+    odds_count = games.filter(
+        Q(home_moneyline__isnull=False) | Q(away_moneyline__isnull=False)
+    ).count()
+    lock_run = WeekLockRun.objects.filter(
+        season_year=settings.NFL_SEASON_YEAR,
+        week=selected_week,
+    ).first()
+    pick_counts = {
+        'total': Pick.objects.filter(week=selected_week).count(),
+        'pending': Pick.objects.filter(week=selected_week, is_win__isnull=True).count(),
+        'wins': Pick.objects.filter(week=selected_week, is_win=True).count(),
+        'losses': Pick.objects.filter(week=selected_week, is_win=False).count(),
+    }
+
+    if lock_run:
+        operational_status = 'Deadline processed'
+        status_detail = f'Processed {lock_run.ran_at:%b %d at %I:%M %p}.'
+    elif schedule_count and odds_count == schedule_count:
+        operational_status = 'Ready'
+        status_detail = 'Schedule and odds are loaded.'
+    elif schedule_count:
+        operational_status = 'Needs odds'
+        status_detail = 'Schedule loaded; betting lines are incomplete.'
+    else:
+        operational_status = 'Needs schedule'
+        status_detail = 'No games are loaded for this week.'
+
+    return render(request, 'league_operations.html', {
+        'current_season': settings.NFL_SEASON_YEAR,
+        'selected_week': selected_week,
+        'week_options': range(1, 19),
+        'schedule_count': schedule_count,
+        'team_count': len(team_ids),
+        'odds_count': odds_count,
+        'operational_status': operational_status,
+        'status_detail': status_detail,
+        'pick_counts': pick_counts,
+        'command_output': command_output,
+        'command_title': command_title,
+        'command_status': command_status,
+    })
 
 
 @login_required

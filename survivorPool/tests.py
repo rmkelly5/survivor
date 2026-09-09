@@ -377,6 +377,50 @@ class BaseNavigationTests(TestCase):
 
         self.assertNotContains(response, 'Admin Console')
         self.assertNotContains(response, 'nav-link-admin')
+        self.assertNotContains(response, 'League Operations')
+
+    def test_staff_user_can_open_league_operations(self):
+        User.objects.create_user(
+            username='operator',
+            password='password',
+            is_staff=True,
+        )
+        self.client.login(username='operator', password='password')
+
+        response = self.client.get('/league-operations/?week=1')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'League operations')
+        self.assertContains(response, 'Week 1')
+
+    def test_regular_user_cannot_open_league_operations(self):
+        User.objects.create_user(username='player', password='password')
+        self.client.login(username='player', password='password')
+
+        response = self.client.get('/league-operations/')
+
+        self.assertEqual(response.status_code, 302)
+
+    @patch('survivorPool.views.call_command')
+    def test_staff_operation_runs_selected_command_with_validated_week(self, command):
+        User.objects.create_user(
+            username='operator',
+            password='password',
+            is_staff=True,
+        )
+        self.client.login(username='operator', password='password')
+
+        response = self.client.post(
+            '/league-operations/',
+            {'action': 'schedule', 'week': '2'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        command.assert_called_once()
+        args, kwargs = command.call_args
+        self.assertEqual(args[0], 'fetch_nfl_schedule')
+        self.assertEqual(kwargs['week'], 2)
+        self.assertEqual(kwargs['year'], 2026)
 
     def test_pot_is_removed_from_navigation_and_redirects_to_leaderboard(self):
         User.objects.create_user(

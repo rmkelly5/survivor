@@ -10,6 +10,7 @@ from .views import (
     UpdatePickView,
     all_picks_view,
     league_leaderboard_view,
+    league_operations_view,
     pot_view,
     rules_view,
 )
@@ -22,6 +23,7 @@ urlpatterns = [
     path('pick/delete/<int:pk>', DeletePickView.as_view(), name="delete_pick"),
     path('leaderboard/', PickView.as_view(), name="leaderboard"),
     path('league_leaderboard/', league_leaderboard_view, name="league_leaderboard"),
+    path('league-operations/', league_operations_view, name="league_operations"),
     path('allPicks/', all_picks_view, name="allPicks"),
     path('chat/', chat_views.chat_view, name="chat"),
     path('chat/poll/', chat_views.chat_poll_api, name="chat_poll"),
