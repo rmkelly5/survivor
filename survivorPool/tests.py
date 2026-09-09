@@ -200,6 +200,39 @@ class AddPickSecurityTests(TestCase):
         pick = Pick.objects.get()
         self.assertEqual(pick.user_name, user)
 
+    def test_make_pick_page_updates_existing_week_pick_before_kickoff(self):
+        user = User.objects.create_user(username='miscia', password='password')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() + datetime.timedelta(hours=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() + datetime.timedelta(hours=3),
+        )
+        pick = Pick.objects.create(user_name=user, team=bills, week=1)
+        self.client.login(username='miscia', password='password')
+
+        response = self.client.post(
+            '/add_pick/',
+            {'team': chiefs.id, 'week': 1, 'user_name': user.id},
+        )
+
+        self.assertRedirects(response, '/', fetch_redirect_response=False)
+        self.assertEqual(Pick.objects.filter(user_name=user, week=1).count(), 1)
+        pick.refresh_from_db()
+        self.assertEqual(pick.team, chiefs)
+
     def test_pick_crud_is_owner_only(self):
         owner = User.objects.create_user(username='owner', password='password')
         other = User.objects.create_user(username='other', password='password')

@@ -129,11 +129,22 @@ class AddPickView(LoginRequiredMixin, CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
+        if self.request.method == 'POST':
+            week = self.request.POST.get('week')
+            if week and week.isdigit():
+                current_pick = Pick.objects.filter(
+                    user_name=self.request.user,
+                    week=int(week),
+                ).first()
+                if current_pick:
+                    kwargs['instance'] = current_pick
+                    kwargs['current_pick'] = current_pick
         return kwargs
 
     def form_valid(self, form):
         form.instance.user_name = self.request.user
-        return super().form_valid(form)
+        self.object = form.save()
+        return redirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

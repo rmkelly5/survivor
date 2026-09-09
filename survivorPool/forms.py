@@ -37,6 +37,7 @@ class PostForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         self.week_number = kwargs.pop('week_number', None)
+        self.current_pick = kwargs.pop('current_pick', None)
         super(PostForm, self).__init__(*args, **kwargs)
 
         if self.user and self.user.is_authenticated:
@@ -68,6 +69,8 @@ class PostForm(forms.ModelForm):
             used_team_ids = Pick.objects.filter(
                 user_name=self.user,
                 missed_deadline=False,
+            ).exclude(
+                id=self.current_pick.id if self.current_pick else None,
             ).exclude(
                 team__team_name='No Pick',
             ).values_list('team_id', flat=True)
@@ -128,6 +131,8 @@ class PostForm(forms.ModelForm):
                 user_name=user_name,
                 team=team,
                 missed_deadline=False,
+            ).exclude(
+                id=self.current_pick.id if self.current_pick else None,
             ).first()
             if previous_pick:
                 raise forms.ValidationError(
@@ -136,7 +141,15 @@ class PostForm(forms.ModelForm):
 
         if week:
             week_num = int(week)
-            if is_week_locked(week_num):
+            if self.current_pick and is_pick_locked(self.current_pick):
+                raise forms.ValidationError(
+                    f"{self.current_pick.team.team_name}'s game has started, so this pick can no longer be changed."
+                )
+            if self.current_pick and team and is_team_game_started(team, week_num):
+                raise forms.ValidationError(
+                    f"{team.team_name}'s game has already started. Please choose a team whose game has not started."
+                )
+            if not self.current_pick and is_week_locked(week_num):
                 raise forms.ValidationError(
                     f"Week {week_num} is locked. Picks cannot be made or changed after 1:05 PM ET Sunday."
                 )
