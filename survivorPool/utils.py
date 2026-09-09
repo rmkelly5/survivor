@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import datetime
+from collections import defaultdict
+from decimal import Decimal
 from typing import Any
 
 import pytz
@@ -9,7 +11,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
 
-from .models import Pick
+from .models import Game, Pick, SeasonSettings
 
 EST = pytz.timezone('US/Eastern')
 WEEK_LOCK_HOUR = 13
@@ -91,7 +93,54 @@ def build_picks_grid(max_week: int | None = None) -> dict[str, Any]:
 
 
 def build_leaderboard_rows() -> list[dict[str, Any]]:
-    """Win/loss counts and simple pot contribution per player."""
+    """Build standings and pot contributions using the configured loss rules."""
+    season_settings = SeasonSettings.objects.filter(
+        season_year=settings.NFL_SEASON_YEAR,
+    ).first()
+    buy_in = season_settings.buy_in if season_settings else Decimal('50')
+    loss_amount = season_settings.loss_amount if season_settings else Decimal('10')
+    favorite_loss_amount = (
+        season_settings.favorite_loss_amount
+        if season_settings
+        else Decimal('25')
+    )
+
+    weekly_moneylines = defaultdict(list)
+    for game in Game.objects.filter(
+        season_year=settings.NFL_SEASON_YEAR,
+    ).values(
+        'week',
+        'home_team_id',
+        'home_moneyline',
+        'away_team_id',
+        'away_moneyline',
+    ):
+        if game['home_moneyline'] is not None:
+            weekly_moneylines[game['week']].append(
+                (game['home_moneyline'], game['home_team_id'])
+            )
+        if game['away_moneyline'] is not None:
+            weekly_moneylines[game['week']].append(
+                (game['away_moneyline'], game['away_team_id'])
+            )
+
+    biggest_favorite_ids = {}
+    for week, teams in weekly_moneylines.items():
+        best_moneyline = min(moneyline for moneyline, _ in teams)
+        biggest_favorite_ids[week] = {
+            team_id
+            for moneyline, team_id in teams
+            if moneyline == best_moneyline
+        }
+
+    favorite_losses_by_user = defaultdict(int)
+    for pick in Pick.objects.filter(
+        is_win=False,
+        user_name__is_active=True,
+    ).values('user_name_id', 'team_id', 'week'):
+        if pick['team_id'] in biggest_favorite_ids.get(pick['week'], set()):
+            favorite_losses_by_user[pick['user_name_id']] += 1
+
     users = User.objects.filter(
         is_active=True,
     ).annotate(
@@ -102,11 +151,19 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
     rows = []
     for user in users:
         loss_count = user.loss_count or 0
+        favorite_loss_count = favorite_losses_by_user[user.id]
+        standard_loss_count = loss_count - favorite_loss_count
         rows.append({
             'username': user.username,
             'win_count': user.win_count or 0,
             'loss_count': loss_count,
-            'pot_contribution': 50 + loss_count * 10,
+            'standard_loss_count': standard_loss_count,
+            'favorite_loss_count': favorite_loss_count,
+            'pot_contribution': (
+                buy_in
+                + standard_loss_count * loss_amount
+                + favorite_loss_count * favorite_loss_amount
+            ),
         })
     return rows
 

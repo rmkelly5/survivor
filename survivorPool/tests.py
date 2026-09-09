@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from .forms import PostForm
 from .models import ChatMessage, Game, Pick, Team, WeekLockRun
-from .utils import build_picks_grid
+from .utils import build_leaderboard_rows, build_picks_grid
 from .views import AddPickView
 
 
@@ -262,13 +262,69 @@ class UtilsTests(TestCase):
         team = Team.objects.create(team_name='Bills')
         Pick.objects.create(user_name=player, team=team, week=1, is_win=True)
 
-        from .utils import build_leaderboard_rows
         rows = build_leaderboard_rows()
 
         self.assertEqual(
             [row['username'] for row in rows],
             ['player', 'admin'],
         )
+
+    def test_biggest_favorite_loss_adds_twenty_five_to_pot(self):
+        favorite_player = User.objects.create_user(username='favorite-player')
+        regular_player = User.objects.create_user(username='regular-player')
+        cofavorite_player = User.objects.create_user(username='cofavorite-player')
+        chargers = Team.objects.create(team_name='Chargers')
+        raiders = Team.objects.create(team_name='Raiders')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chargers,
+            away_team=raiders,
+            home_moneyline=-300,
+            away_moneyline=250,
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            home_moneyline=-300,
+            away_moneyline=240,
+        )
+        Pick.objects.create(
+            user_name=favorite_player,
+            team=chargers,
+            week=1,
+            is_win=False,
+        )
+        Pick.objects.create(
+            user_name=cofavorite_player,
+            team=bills,
+            week=1,
+            is_win=False,
+        )
+        Pick.objects.create(
+            user_name=regular_player,
+            team=raiders,
+            week=1,
+            is_win=False,
+        )
+
+        rows = {
+            row['username']: row
+            for row in build_leaderboard_rows()
+        }
+
+        self.assertEqual(rows['favorite-player']['favorite_loss_count'], 1)
+        self.assertEqual(rows['favorite-player']['standard_loss_count'], 0)
+        self.assertEqual(rows['favorite-player']['pot_contribution'], 75)
+        self.assertEqual(rows['cofavorite-player']['favorite_loss_count'], 1)
+        self.assertEqual(rows['cofavorite-player']['pot_contribution'], 75)
+        self.assertEqual(rows['regular-player']['favorite_loss_count'], 0)
+        self.assertEqual(rows['regular-player']['standard_loss_count'], 1)
+        self.assertEqual(rows['regular-player']['pot_contribution'], 60)
 
 
 class LockWeekCommandTests(TestCase):

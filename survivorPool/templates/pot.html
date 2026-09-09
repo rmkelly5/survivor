@@ -3,7 +3,7 @@
 {% block content %}
 {% if user.is_authenticated %}
 <h1>{{ season_year }} Pot</h1>
-<p class="text-muted">Simplified tracking: $50 entry + $10 per recorded loss. Favorite-loss ($25) and half-loss credits coming in a future update.</p>
+<p class="text-muted">$50 entry + $10 per standard loss. A loss with the week's biggest favorite or co-favorite adds $25 instead.</p>
 
 <p class="display-6 fw-bold">Total pot: ${{ total_pot }}</p>
 
@@ -12,7 +12,8 @@
         <thead>
             <tr>
                 <th>Player</th>
-                <th>Losses</th>
+                <th>Standard Losses</th>
+                <th>Big Favorite Losses</th>
                 <th>Contributed</th>
             </tr>
         </thead>
@@ -20,7 +21,8 @@
             {% for row in leaderboard_rows %}
             <tr>
                 <td>{{ row.username }}</td>
-                <td>{{ row.loss_count }}</td>
+                <td>{{ row.standard_loss_count }}</td>
+                <td>{{ row.favorite_loss_count }}</td>
                 <td>${{ row.pot_contribution }}</td>
             </tr>
             {% endfor %}

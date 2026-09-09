@@ -6,7 +6,7 @@
     <div>
         <p class="eyebrow">Standings</p>
         <h1 class="mb-1">{{ season_year }} Leaderboard</h1>
-        <p class="text-muted mb-0">Ranked by wins. Pot contribution = $50 buy-in + $10 per loss.</p>
+        <p class="text-muted mb-0">Ranked by wins. Pot contribution = $50 buy-in + $10 per standard loss or $25 when the week's biggest favorite loses.</p>
     </div>
     <div class="stat-card stat-card--pot">
         <span>Total Pot</span>
@@ -23,6 +23,7 @@
                 <th>Record</th>
                 <th>Wins</th>
                 <th>Losses</th>
+                <th>Big Fav Losses</th>
                 <th>Pot $</th>
             </tr>
         </thead>
@@ -34,10 +35,11 @@
                 <td><span class="record-pill">{{ row.win_count }}-{{ row.loss_count }}</span></td>
                 <td>{{ row.win_count }}</td>
                 <td>{{ row.loss_count }}</td>
+                <td>{{ row.favorite_loss_count }}</td>
                 <td class="money-cell">${{ row.pot_contribution }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="6">No players yet.</td></tr>
+            <tr><td colspan="7">No players yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
