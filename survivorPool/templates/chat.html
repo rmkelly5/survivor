@@ -17,7 +17,7 @@
     <div class="chat-message {% if msg.message_type == 'weekly_lock_summary' %}chat-message--system{% elif msg.author == user %}chat-message--mine{% endif %}" data-id="{{ msg.id }}">
         <div class="chat-message-header">
             <strong>{% if msg.author %}{{ msg.author.username }}{% else %}Survivor Bot{% endif %}</strong>
-            <span class="chat-time">{{ msg.created_at|date:"M j, g:i A" }}</span>
+            <span class="chat-time" data-created-at="{{ msg.created_at|date:'c' }}">{{ msg.created_at|date:"M j, g:i A" }}</span>
         </div>
         <pre class="chat-body">{{ msg.body }}</pre>
     </div>
@@ -48,6 +48,21 @@
   const box = document.getElementById('chat-messages');
   if (!box) return;
   let lastId = 0;
+  function formatChatTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value || '';
+    return new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    }).format(date);
+  }
+
+  box.querySelectorAll('.chat-time[data-created-at]').forEach(node => {
+    node.textContent = formatChatTime(node.dataset.createdAt);
+  });
+
   box.querySelectorAll('.chat-message').forEach(el => {
     const id = parseInt(el.dataset.id, 10);
     if (id > lastId) lastId = id;
@@ -73,7 +88,7 @@
         author.textContent = msg.author;
         const time = document.createElement('span');
         time.className = 'chat-time';
-        time.textContent = msg.created_at;
+        time.textContent = formatChatTime(msg.created_at);
         const body = document.createElement('pre');
         body.className = 'chat-body';
         body.textContent = msg.body;
