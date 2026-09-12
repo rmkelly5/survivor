@@ -95,7 +95,6 @@ test('authenticated navigation pages render cleanly', async ({ page }, testInfo)
   const pages = [
     ['/allPicks/', '2026 League Picks'],
     ['/league_leaderboard/', '2026 Leaderboard'],
-    ['/pot/', '2026 Pot'],
     ['/rules/', 'League Rules'],
     ['/chat/', 'League Chat'],
   ] as const;
@@ -106,6 +105,11 @@ test('authenticated navigation pages render cleanly', async ({ page }, testInfo)
     await expectNoBrokenText(page);
   }
 
+  await page.goto('/pot/');
+  await expect(page).toHaveURL(/\/league_leaderboard\/$/);
+  await expect(page.getByRole('heading', { name: '2026 Leaderboard' })).toBeVisible();
+
+  await page.goto('/chat/');
   await expect(page.locator('#chat-messages .chat-message')).toHaveCount(190);
   await expect(page.locator('#chat-messages .chat-message--system')).toHaveCount(2);
   await page.goto('/');

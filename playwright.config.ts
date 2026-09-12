@@ -31,6 +31,7 @@ export default defineConfig({
       ...process.env,
       DJANGO_DEBUG: 'True',
       DJANGO_ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver',
+      NEON_DATABASE_URL: '',
       DATABASE_URL: process.env.DATABASE_URL || 'sqlite:///browser-test.sqlite3',
       NFL_SEASON_YEAR: '2026',
       NFL_SEASON_START_DATE: '2026-09-09',
@@ -38,18 +39,16 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'desktop-chrome',
+      name: 'desktop-chromium',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
         viewport: { width: 1440, height: 900 },
       },
     },
     {
-      name: 'mobile-chrome',
+      name: 'mobile-chromium',
       use: {
         ...devices['Pixel 5'],
-        channel: 'chrome',
         viewport: { width: 390, height: 844 },
       },
     },

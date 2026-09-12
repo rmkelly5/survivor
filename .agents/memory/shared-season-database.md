@@ -14,4 +14,7 @@ operation.
 
 **How to apply:** Before any cleanup, seed, schedule sync, odds refresh, or
 winner update, inspect and count the affected Django ORM records. State the
-production impact explicitly and verify counts after the command.
+production impact explicitly and verify counts after the command. Browser and
+automated tests must explicitly clear the inherited Neon URL before supplying a
+local test database; otherwise Django's URL precedence connects the test seeder
+to the shared league database.
