@@ -190,7 +190,7 @@ class Command(BaseCommand):
 
         ChatMessage.objects.create(
             author=None,
-            body='Week 5 locked. Shame corner: casey_q and quinn_s missed the deadline.',
+            body='Week 5 finalized. Shame corner: casey_q and quinn_s made no pick.',
             message_type=ChatMessage.MESSAGE_WEEKLY_LOCK,
             week=5,
         )

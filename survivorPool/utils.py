@@ -1,4 +1,4 @@
-"""Shared helpers for week locking, NFL calendar, and pick grids."""
+"""Shared helpers for NFL timing and pick grids."""
 from __future__ import annotations
 
 import datetime
@@ -6,18 +6,12 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Any
 
-import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
 from django.utils import timezone
 
 from .models import Game, Pick, SeasonSettings, Team
-
-EST = pytz.timezone('US/Eastern')
-WEEK_LOCK_HOUR = 13
-WEEK_LOCK_MINUTE = 5
-
 
 def get_current_nfl_week(season_start_date=None) -> int:
     season_start_date = season_start_date or settings.NFL_SEASON_START_DATE
@@ -28,24 +22,15 @@ def get_current_nfl_week(season_start_date=None) -> int:
     return min(delta.days // 7 + 1, 18)
 
 
-def get_week_lock_datetime(week_number: int, season_start_date=None) -> datetime.datetime:
-    """Sunday 1:05 PM US/Eastern for the given NFL week."""
-    season_start_date = season_start_date or settings.NFL_SEASON_START_DATE
-    season_start = datetime.datetime.combine(season_start_date, datetime.time.min)
-    season_start = EST.localize(season_start)
-    days_to_week = (week_number - 1) * 7
-    week_sunday = season_start + datetime.timedelta(days=days_to_week + 2)
-    return week_sunday.replace(
-        hour=WEEK_LOCK_HOUR,
-        minute=WEEK_LOCK_MINUTE,
-        second=0,
-        microsecond=0,
-    )
-
-
-def is_week_locked(week_number: int) -> bool:
-    now = datetime.datetime.now(EST)
-    return now >= get_week_lock_datetime(week_number)
+def all_week_games_started(week_number: int) -> bool:
+    """Return true only when every scheduled game for the week has kicked off."""
+    game_times = list(Game.objects.filter(
+        season_year=settings.NFL_SEASON_YEAR,
+        week=week_number,
+    ).values_list('game_time', flat=True))
+    now = timezone.now()
+    # An unknown kickoff must not finalize the week and erase a valid late-pick window.
+    return bool(game_times) and all(game_time and now >= game_time for game_time in game_times)
 
 
 def get_team_game_time(team: Team, week_number: int):
@@ -67,11 +52,9 @@ def get_team_game_time(team: Team, week_number: int):
 
 
 def is_team_game_started(team: Team, week_number: int) -> bool:
-    """Use kickoff as the lock; fall back to the weekly lock if no time exists."""
+    """Use the selected team's kickoff as its only pick deadline."""
     game_time = get_team_game_time(team, week_number)
-    if game_time is None:
-        return is_week_locked(week_number)
-    return timezone.now() >= game_time
+    return game_time is not None and timezone.now() >= game_time
 
 
 def is_pick_locked(pick: Pick) -> bool:

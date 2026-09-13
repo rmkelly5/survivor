@@ -133,16 +133,16 @@
     <article class="ops-command-card ops-command-card--deadline">
       <div class="ops-card-top">
         <span class="ops-command-index">03</span>
-        <span class="ops-command-state">Irreversible</span>
+        <span class="ops-command-state">After final kickoff</span>
       </div>
-      <h2>Lock Sunday deadline</h2>
-      <p>Record automatic losses for players who missed the Sunday deadline and post the summary to chat.</p>
-      <div class="ops-consequence ops-consequence--warn"><strong>Consequence:</strong> missing entries become losses; submitted picks still lock at their game’s kickoff.</div>
-      <form method="post" class="ops-action-form" onsubmit="return confirm('Process the Sunday deadline for Week {{ selected_week }}? Missing picks will become losses.');">
+      <h2>Finalize week</h2>
+      <p>After every game has started, record automatic losses for players with no pick and post the summary to chat.</p>
+      <div class="ops-consequence ops-consequence--warn"><strong>Consequence:</strong> missing entries become losses.</div>
+      <form method="post" class="ops-action-form" onsubmit="return confirm('Finalize Week {{ selected_week }}? Missing picks will become losses.');">
         {% csrf_token %}
         <input type="hidden" name="action" value="deadline">
         <input type="hidden" name="week" value="{{ selected_week }}">
-        <button type="submit" class="btn btn-danger">Lock Sunday deadline</button>
+        <button type="submit" class="btn btn-danger">Finalize week</button>
       </form>
     </article>
 
@@ -167,7 +167,7 @@
     <span class="ops-note-mark">!</span>
     <div>
       <strong>Run in order</strong>
-      <p>Schedule first, then odds. Lock the deadline only after verifying the matchup page. Post results after games finish.</p>
+      <p>Schedule first, then odds. Finalize only after the final game kicks off. Post results after games finish.</p>
     </div>
   </aside>
 </main>

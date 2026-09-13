@@ -28,8 +28,10 @@
     <div class="alert alert-danger">{{ form.team.errors }}</div>
     {% endif %}
 
-    {% if week_locked %}
-    <div class="alert alert-warning">Week {{ display_week }} is locked (past Sunday 1:05 PM ET).</div>
+    {% if not has_week_pick and not has_available_team %}
+    <div class="alert alert-warning">
+        You have no unused teams remaining in games that have not started. This week will be recorded as a No Pick loss.
+    </div>
     {% endif %}
 
     {% if biggest_favorites %}
@@ -68,13 +70,13 @@
             <div class="matchup-teams">
 
                 {% if matchup.away %}
-                <label class="team-card {% if matchup.away_picked %}already-picked{% endif %}{% if selected_team_id == matchup.away.id %} selected{% endif %}"
+                <label class="team-card {% if matchup.away_picked or matchup.away_started %}already-picked{% endif %}{% if selected_team_id == matchup.away.id %} selected{% endif %}"
                        for="team_{{ matchup.away.id }}">
                     <input type="radio" name="team" id="team_{{ matchup.away.id }}"
                            value="{{ matchup.away.id }}"
                            class="team-radio"
                            {% if selected_team_id == matchup.away.id %}checked{% endif %}
-                           {% if matchup.away_picked %}disabled{% endif %}>
+                           {% if matchup.away_picked or matchup.away_started %}disabled{% endif %}>
                     <div class="team-logo-wrap">
                         {% if matchup.away_logo %}
                         <img src="{{ matchup.away_logo }}" loading="lazy" decoding="async"
@@ -88,19 +90,19 @@
                         {% if matchup.away_spread and matchup.away_is_favorite %}<span class="odds-info">-{{ matchup.away_spread }}</span>{% endif %}
                         {% if matchup.away_moneyline %}<span class="odds-info">{% if matchup.away_moneyline > 0 %}+{% endif %}{{ matchup.away_moneyline }}</span>{% endif %}
                     </div>
-                    {% if matchup.away_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
+                    {% if matchup.away_started %}<div class="already-picked-label">Game Started</div>{% elif matchup.away_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
                 </label>
                 {% endif %}
 
                 <div class="vs-divider">@</div>
 
-                <label class="team-card {% if matchup.home_picked %}already-picked{% endif %}{% if selected_team_id == matchup.home.id %} selected{% endif %}"
+                <label class="team-card {% if matchup.home_picked or matchup.home_started %}already-picked{% endif %}{% if selected_team_id == matchup.home.id %} selected{% endif %}"
                        for="team_{{ matchup.home.id }}">
                     <input type="radio" name="team" id="team_{{ matchup.home.id }}"
                            value="{{ matchup.home.id }}"
                            class="team-radio"
                            {% if selected_team_id == matchup.home.id %}checked{% endif %}
-                           {% if matchup.home_picked %}disabled{% endif %}>
+                           {% if matchup.home_picked or matchup.home_started %}disabled{% endif %}>
                     <div class="team-logo-wrap">
                         {% if matchup.home_logo %}
                         <img src="{{ matchup.home_logo }}" loading="lazy" decoding="async"
@@ -114,7 +116,7 @@
                         {% if matchup.home_spread and matchup.home_is_favorite %}<span class="odds-info">-{{ matchup.home_spread }}</span>{% endif %}
                         {% if matchup.home_moneyline %}<span class="odds-info">{% if matchup.home_moneyline > 0 %}+{% endif %}{{ matchup.home_moneyline }}</span>{% endif %}
                     </div>
-                    {% if matchup.home_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
+                    {% if matchup.home_started %}<div class="already-picked-label">Game Started</div>{% elif matchup.home_picked %}<div class="already-picked-label">Already Picked</div>{% endif %}
                 </label>
 
             </div>

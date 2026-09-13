@@ -55,7 +55,7 @@ class Pick(models.Model):
     is_win = models.BooleanField(null=True, blank=True, default=None)
     missed_deadline = models.BooleanField(
         default=False,
-        help_text="Auto-assigned loss when no pick by Sunday 1:05 PM ET.",
+        help_text="Auto-assigned loss when no pick was made before the final weekly kickoff.",
     )
 
     class Meta:
@@ -73,7 +73,7 @@ class ChatMessage(models.Model):
     MESSAGE_WEEKLY_LOCK = 'weekly_lock_summary'
     MESSAGE_TYPES = [
         (MESSAGE_USER, 'User'),
-        (MESSAGE_WEEKLY_LOCK, 'Weekly lock summary'),
+        (MESSAGE_WEEKLY_LOCK, 'Weekly final summary'),
     ]
 
     author = models.ForeignKey(
@@ -97,7 +97,7 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         if self.message_type == self.MESSAGE_WEEKLY_LOCK:
-            return f"Week {self.week} lock summary"
+            return f"Week {self.week} final summary"
         return f"{self.author}: {self.body[:40]}"
 
 
@@ -110,7 +110,7 @@ class WeekLockRun(models.Model):
         unique_together = ('season_year', 'week')
 
     def __str__(self):
-        return f"{self.season_year} Week {self.week} locked at {self.ran_at}"
+        return f"{self.season_year} Week {self.week} finalized at {self.ran_at}"
 
 
 class SeasonSettings(models.Model):

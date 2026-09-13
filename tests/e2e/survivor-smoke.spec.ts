@@ -8,7 +8,9 @@ async function watchPage(page: Page) {
   const failedRequests: string[] = [];
 
   page.on('console', (message) => {
-    if (message.type() === 'error') {
+    // requestfailed below checks critical assets with their URLs; ignore the
+    // browser's duplicate generic message for optional images such as team logos.
+    if (message.type() === 'error' && !message.text().startsWith('Failed to load resource:')) {
       consoleErrors.push(message.text());
     }
   });

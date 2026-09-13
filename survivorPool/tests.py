@@ -6,8 +6,9 @@ import datetime
 from unittest.mock import patch
 
 from .forms import PostForm
+from .management.commands.fetch_nfl_odds import choose_bookmaker
 from .models import ChatMessage, Game, Pick, Team, WeekLockRun
-from .utils import build_leaderboard_rows, build_picks_grid
+from .utils import all_week_games_started, build_leaderboard_rows, build_picks_grid
 from .views import AddPickView
 
 
@@ -119,6 +120,35 @@ class AddPickViewTests(TestCase):
             [],
         )
 
+    def test_missing_pick_explains_when_no_eligible_team_remains(self):
+        user = User.objects.create_user(username='miscia', password='password')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Pick.objects.create(user_name=user, team=chiefs, week=1)
+        Pick.objects.create(user_name=user, team=raiders, week=2)
+        Game.objects.create(
+            season_year=2026,
+            week=3,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() - datetime.timedelta(minutes=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=3,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() + datetime.timedelta(hours=3),
+        )
+        self.client.login(username='miscia', password='password')
+
+        response = self.client.get('/add_pick/?week=3')
+
+        self.assertFalse(response.context['has_available_team'])
+        self.assertContains(response, 'This week will be recorded as a No Pick loss.')
+
 
 class PostFormTests(TestCase):
     def test_team_queryset_is_limited_to_selected_week(self):
@@ -160,8 +190,7 @@ class PostFormTests(TestCase):
             user=user,
         )
 
-        with patch('survivorPool.forms.is_week_locked', return_value=False):
-            self.assertFalse(form.is_valid())
+        self.assertFalse(form.is_valid())
 
         self.assertIn('Select a valid choice', str(form.errors))
 
@@ -181,6 +210,34 @@ class PostFormTests(TestCase):
 
         self.assertIn(bills, form.fields['team'].queryset)
 
+    def test_started_game_is_closed_while_later_game_remains_available(self):
+        user = User.objects.create_user(username='miscia')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() - datetime.timedelta(minutes=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() + datetime.timedelta(hours=3),
+        )
+
+        started = PostForm(data={'team': bills.id, 'week': 1}, user=user)
+        later = PostForm(data={'team': chiefs.id, 'week': 1}, user=user)
+
+        self.assertFalse(started.is_valid())
+        self.assertIn('game has already started', str(started.errors))
+        self.assertTrue(later.is_valid(), later.errors)
+
 
 class AddPickSecurityTests(TestCase):
     def test_post_uses_logged_in_user_not_hidden_user_field(self):
@@ -190,11 +247,10 @@ class AddPickSecurityTests(TestCase):
 
         self.client.login(username='miscia', password='password')
 
-        with patch('survivorPool.forms.is_week_locked', return_value=False):
-            response = self.client.post(
-                '/add_pick/',
-                {'team': team.id, 'week': 7, 'user_name': other_user.id},
-            )
+        response = self.client.post(
+            '/add_pick/',
+            {'team': team.id, 'week': 7, 'user_name': other_user.id},
+        )
 
         self.assertRedirects(response, '/', fetch_redirect_response=False)
         pick = Pick.objects.get()
@@ -232,6 +288,39 @@ class AddPickSecurityTests(TestCase):
         self.assertEqual(Pick.objects.filter(user_name=user, week=1).count(), 1)
         pick.refresh_from_db()
         self.assertEqual(pick.team, chiefs)
+
+    def test_make_pick_page_cannot_switch_after_selected_game_starts(self):
+        user = User.objects.create_user(username='miscia', password='password')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() - datetime.timedelta(minutes=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() + datetime.timedelta(hours=3),
+        )
+        pick = Pick.objects.create(user_name=user, team=bills, week=1)
+        self.client.login(username='miscia', password='password')
+
+        response = self.client.post(
+            '/add_pick/',
+            {'team': chiefs.id, 'week': 1, 'user_name': user.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        pick.refresh_from_db()
+        self.assertEqual(pick.team, bills)
+        self.assertContains(response, "game has started")
 
     def test_pick_crud_is_owner_only(self):
         owner = User.objects.create_user(username='owner', password='password')
@@ -441,6 +530,41 @@ class BaseNavigationTests(TestCase):
 
 
 class UtilsTests(TestCase):
+    def test_bookmaker_priority_falls_back_to_any_returned_book(self):
+        other = {'key': 'betrivers', 'title': 'BetRivers'}
+        draftkings = {'key': 'draftkings', 'title': 'DraftKings'}
+        fanduel = {'key': 'fanduel', 'title': 'FanDuel'}
+        betmgm = {'key': 'betmgm', 'title': 'BetMGM'}
+
+        self.assertIs(choose_bookmaker([other, fanduel, draftkings]), draftkings)
+        self.assertIs(choose_bookmaker([other, betmgm, fanduel]), fanduel)
+        self.assertIs(choose_bookmaker([other]), other)
+
+    def test_week_is_final_only_after_every_game_starts(self):
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        chiefs = Team.objects.create(team_name='Chiefs')
+        raiders = Team.objects.create(team_name='Raiders')
+        later = Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() + datetime.timedelta(hours=1),
+        )
+        Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=chiefs,
+            away_team=raiders,
+            game_time=timezone.now() - datetime.timedelta(hours=1),
+        )
+
+        self.assertFalse(all_week_games_started(1))
+        later.game_time = timezone.now() - datetime.timedelta(minutes=1)
+        later.save(update_fields=['game_time'])
+        self.assertTrue(all_week_games_started(1))
+
     def test_build_picks_grid_without_pandas(self):
         user = User.objects.create_user(username='alice')
         team = Team.objects.create(team_name='Bills')
@@ -467,7 +591,6 @@ class UtilsTests(TestCase):
         self.assertEqual(grid['pick_lookup'][(1, 'alice')]['team'], '')
         self.assertEqual(grid['pick_lookup'][(1, 'alice')]['status'], 'LOSS')
         self.assertTrue(grid['pick_lookup'][(1, 'alice')]['missed_deadline'])
-
     def test_leaderboard_includes_staff_and_superusers(self):
         User.objects.create_superuser(username='admin', password='password')
         player = User.objects.create_user(username='player')
@@ -539,7 +662,61 @@ class UtilsTests(TestCase):
         self.assertEqual(rows['regular-player']['pot_contribution'], 60)
 
 
+class OddsCommandTests(TestCase):
+    @patch.dict('os.environ', {'ODDS_API_KEY': 'test-key'})
+    @patch('survivorPool.management.commands.fetch_nfl_odds.get_espn_week_matchups')
+    @patch('survivorPool.management.commands.fetch_nfl_odds.requests.get')
+    def test_empty_bookmaker_response_preserves_existing_odds(self, get_odds, get_schedule):
+        kickoff = timezone.now() + datetime.timedelta(days=1)
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        game = Game.objects.create(
+            season_year=2026,
+            week=1,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=kickoff,
+            home_spread=3.5,
+            home_moneyline=-180,
+            away_moneyline=155,
+            home_is_favorite=True,
+        )
+        get_schedule.return_value = {('Bills', 'Dolphins'): kickoff}
+        get_odds.return_value.headers = {}
+        get_odds.return_value.json.return_value = [{
+            'home_team': 'Buffalo Bills',
+            'away_team': 'Miami Dolphins',
+            'commence_time': kickoff.isoformat(),
+            'bookmakers': [],
+        }]
+
+        call_command('fetch_nfl_odds', '--year=2026', '--week=1')
+
+        game.refresh_from_db()
+        self.assertEqual(game.home_moneyline, -180)
+        self.assertEqual(game.away_moneyline, 155)
+        self.assertEqual(game.home_spread, 3.5)
+
+
 class LockWeekCommandTests(TestCase):
+    def test_week_cannot_finalize_while_a_game_is_still_available(self):
+        user = User.objects.create_user(username='late')
+        bills = Team.objects.create(team_name='Bills')
+        dolphins = Team.objects.create(team_name='Dolphins')
+        Pick.objects.create(user_name=user, team=bills, week=1, is_win=True)
+        Game.objects.create(
+            season_year=2026,
+            week=3,
+            home_team=bills,
+            away_team=dolphins,
+            game_time=timezone.now() + datetime.timedelta(hours=1),
+        )
+
+        call_command('lock_week_and_post_chat', '--week=3')
+
+        self.assertFalse(WeekLockRun.objects.filter(week=3).exists())
+        self.assertFalse(Pick.objects.filter(user_name=user, week=3).exists())
+
     def test_lock_week_posts_chat_and_auto_loss(self):
         user = User.objects.create_user(username='late')
         stranger = User.objects.create_user(username='stranger')
@@ -548,8 +725,7 @@ class LockWeekCommandTests(TestCase):
         Pick.objects.create(user_name=user, team=team, week=1, is_win=True)
         Pick.objects.create(user_name=admin, team=team, week=1, is_win=True)
 
-        with patch('survivorPool.management.commands.lock_week_and_post_chat.is_week_locked', return_value=True):
-            call_command('lock_week_and_post_chat', '--week=3', '--force')
+        call_command('lock_week_and_post_chat', '--week=3', '--force')
 
         pick = Pick.objects.get(user_name=user, week=3)
         self.assertFalse(pick.is_win)
@@ -573,15 +749,23 @@ class LockWeekCommandTests(TestCase):
         team = Team.objects.create(team_name='Bills')
         Pick.objects.create(user_name=user, team=team, week=1, is_win=True)
 
-        with patch('survivorPool.management.commands.lock_week_and_post_chat.is_week_locked', return_value=True):
-            call_command('lock_week_and_post_chat', '--week=3', '--force')
-            call_command('lock_week_and_post_chat', '--week=3', '--force')
+        call_command('lock_week_and_post_chat', '--week=3', '--force')
+        call_command('lock_week_and_post_chat', '--week=3', '--force')
 
         self.assertEqual(Pick.objects.filter(user_name=user, week=3, missed_deadline=True).count(), 1)
         self.assertEqual(ChatMessage.objects.filter(message_type=ChatMessage.MESSAGE_WEEKLY_LOCK, week=3).count(), 1)
 
 
 class ChatViewTests(TestCase):
+    def test_chat_api_returns_timestamp_with_timezone(self):
+        user = User.objects.create_user(username='chatter', password='password')
+        ChatMessage.objects.create(author=user, body='hello')
+        self.client.login(username='chatter', password='password')
+
+        timestamp = self.client.get('/chat/poll/').json()['messages'][0]['created_at']
+
+        self.assertIsNotNone(datetime.datetime.fromisoformat(timestamp).utcoffset())
+
     def test_chat_poll_without_after_is_capped(self):
         user = User.objects.create_user(username='chatter', password='password')
         for i in range(205):
