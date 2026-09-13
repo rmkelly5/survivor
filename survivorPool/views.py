@@ -10,6 +10,7 @@ from django.core.management import call_command
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from django_tables2 import SingleTableView
 
@@ -21,7 +22,6 @@ from .utils import (
     build_picks_grid,
     get_current_nfl_week,
     is_pick_locked,
-    is_week_locked,
 )
 
 NFL_TEAM_LOGOS = {
@@ -191,7 +191,17 @@ class AddPickView(LoginRequiredMixin, CreateView):
         context['used_team_ids'] = used_team_ids
         context['display_week'] = display_week
         context['selected_team_id'] = selected_team_id
-        context['week_locked'] = is_week_locked(display_week)
+        context['has_week_pick'] = Pick.objects.filter(
+            user_name=self.request.user,
+            week=display_week,
+        ).exists()
+        context['has_available_team'] = any(
+            matchup.get(side)
+            and not matchup[f'{side}_picked']
+            and not matchup[f'{side}_started']
+            for matchup in matchups
+            for side in ('away', 'home')
+        )
         return context
 
     def _get_biggest_favorites(self, matchups):
@@ -217,16 +227,21 @@ class AddPickView(LoginRequiredMixin, CreateView):
         ]
 
     def _matchup_from_game(self, game, used_team_ids, logo_url):
+        # Mirror the server-side kickoff rule in the UI; form validation still
+        # protects submissions made from a page that went stale after kickoff.
+        game_started = game.game_time is not None and timezone.now() >= game.game_time
         return {
             'home': game.home_team,
             'home_logo': logo_url(game.home_team),
             'home_picked': game.home_team_id in used_team_ids,
+            'home_started': game_started,
             'home_is_favorite': game.home_is_favorite,
             'home_spread': game.home_spread,
             'home_moneyline': game.home_moneyline,
             'away': game.away_team,
             'away_logo': logo_url(game.away_team),
             'away_picked': game.away_team_id in used_team_ids,
+            'away_started': game_started,
             'away_is_favorite': game.away_is_favorite,
             'away_spread': game.away_spread,
             'away_moneyline': game.away_moneyline,
@@ -244,16 +259,19 @@ class AddPickView(LoginRequiredMixin, CreateView):
                 (t for t in week_teams if t.team_name == team.opponent and not t.is_home),
                 None,
             )
+            game_started = team.game_time is not None and timezone.now() >= team.game_time
             matchups.append({
                 'home': team,
                 'home_logo': logo_url(team),
                 'home_picked': team.id in used_team_ids,
+                'home_started': game_started,
                 'home_is_favorite': team.is_favorite,
                 'home_spread': team.spread,
                 'home_moneyline': team.moneyline,
                 'away': away,
                 'away_logo': logo_url(away) if away else '',
                 'away_picked': away.id in used_team_ids if away else False,
+                'away_started': game_started,
                 'away_is_favorite': away.is_favorite if away else False,
                 'away_spread': away.spread if away else None,
                 'away_moneyline': away.moneyline if away else None,
@@ -265,16 +283,19 @@ class AddPickView(LoginRequiredMixin, CreateView):
 
         for team in week_teams:
             if team.id not in paired_ids:
+                game_started = team.game_time is not None and timezone.now() >= team.game_time
                 matchups.append({
                     'home': team,
                     'home_logo': logo_url(team),
                     'home_picked': team.id in used_team_ids,
+                    'home_started': game_started,
                     'home_is_favorite': team.is_favorite,
                     'home_spread': team.spread,
                     'home_moneyline': team.moneyline,
                     'away': None,
                     'away_logo': '',
                     'away_picked': False,
+                    'away_started': False,
                     'away_is_favorite': False,
                     'away_spread': None,
                     'away_moneyline': None,
@@ -417,7 +438,7 @@ def league_operations_view(request):
         commands = {
             'schedule': ('fetch_nfl_schedule', 'Schedule sync', {'year': settings.NFL_SEASON_YEAR}),
             'odds': ('fetch_nfl_odds', 'Odds refresh', {'year': settings.NFL_SEASON_YEAR}),
-            'deadline': ('lock_week_and_post_chat', 'Sunday deadline', {}),
+            'deadline': ('lock_week_and_post_chat', 'Week finalization', {}),
             'results': ('fetch_nfl_winners', 'Week results', {}),
         }
         command_config = commands.get(action)
@@ -464,8 +485,8 @@ def league_operations_view(request):
     }
 
     if lock_run:
-        operational_status = 'Deadline processed'
-        status_detail = f'Processed {lock_run.ran_at:%b %d at %I:%M %p}.'
+        operational_status = 'Week finalized'
+        status_detail = f'Finalized {lock_run.ran_at:%b %d at %I:%M %p}.'
     elif schedule_count and odds_count == schedule_count:
         operational_status = 'Ready'
         status_detail = 'Schedule and odds are loaded.'

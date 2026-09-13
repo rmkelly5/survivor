@@ -7,7 +7,7 @@
         <div>
             <p class="eyebrow">Season Dashboard</p>
             <h1 class="mb-1">{{ user.username }}'s Picks</h1>
-            <p class="text-muted mb-0">Track your weekly picks, outcomes, and locked misses.</p>
+            <p class="text-muted mb-0">Track your weekly picks, outcomes, and no-pick losses.</p>
         </div>
         <a href="{% url 'add_pick' %}" class="btn btn-primary">+ Make a Pick</a>
     </div>
@@ -30,7 +30,7 @@
                         {% if pick.missed_deadline %}No pick{% else %}{{ pick.team.team_name }}{% endif %}
                     </div>
                     <div class="pick-card-foot">
-                        {% if pick.missed_deadline %}<span class="text-danger small">Missed deadline</span>{% else %}<span class="text-muted small">Submitted pick</span>{% endif %}
+                        {% if pick.missed_deadline %}<span class="text-danger small">No weekly pick</span>{% else %}<span class="text-muted small">Submitted pick</span>{% endif %}
                         <a href="{% url 'pick_details' pick.pk %}" class="btn btn-secondary btn-sm">View</a>
                     </div>
                 </div>

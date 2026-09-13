@@ -7,6 +7,20 @@ import pytz
 import requests
 
 
+# League policy: DraftKings is the default, followed by FanDuel and BetMGM.
+# If none respond, use any returned book so a matchup is never skipped for source preference.
+BOOKMAKER_PRIORITY = ('draftkings', 'fanduel', 'betmgm')
+
+
+def choose_bookmaker(bookmakers):
+    """Use the league's preferred books, then any book so a returned game gets odds."""
+    by_key = {book.get('key'): book for book in bookmakers}
+    return next(
+        (by_key[key] for key in BOOKMAKER_PRIORITY if key in by_key),
+        bookmakers[0] if bookmakers else None,
+    )
+
+
 def extract_team_nickname(full_name):
     """Extract team nickname from a full team name."""
     return full_name.split()[-1]
@@ -151,31 +165,40 @@ class Command(BaseCommand):
                 # Parse game time and convert to EST
                 commence_time = commence_time_utc.astimezone(est_tz)
 
-                spread = None
-                home_is_favorite = False
-                away_is_favorite = False
-                moneyline_home = None
-                moneyline_away = None
+                stored_game = Game.objects.filter(
+                    season_year=year,
+                    week=week,
+                    home_team=home_team,
+                    away_team=away_team,
+                ).first()
+                # A manual refresh must never erase usable odds. Start with the
+                # stored values, then replace only fields the chosen book returned.
+                home_spread = stored_game.home_spread if stored_game else None
+                away_spread = stored_game.away_spread if stored_game else None
+                home_is_favorite = stored_game.home_is_favorite if stored_game else False
+                away_is_favorite = stored_game.away_is_favorite if stored_game else False
+                moneyline_home = stored_game.home_moneyline if stored_game else None
+                moneyline_away = stored_game.away_moneyline if stored_game else None
 
-                if game.get('bookmakers'):
-                    bookmaker = game['bookmakers'][0]
+                bookmaker = choose_bookmaker(game.get('bookmakers', []))
+                if bookmaker:
 
                     spread_market = next(
                         (m for m in bookmaker['markets'] if m['key'] == 'spreads'),
                         None,
                     )
                     if spread_market:
+                        home_is_favorite = False
+                        away_is_favorite = False
                         for outcome in spread_market['outcomes']:
                             if outcome['name'] == game['home_team']:
-                                home_spread = outcome.get('point', 0)
-                                if home_spread < 0:
-                                    home_is_favorite = True
-                                    spread = abs(home_spread)
+                                point = outcome.get('point', 0)
+                                home_is_favorite = point < 0
+                                home_spread = abs(point) if home_is_favorite else None
                             elif outcome['name'] == game['away_team']:
-                                away_spread = outcome.get('point', 0)
-                                if away_spread < 0:
-                                    away_is_favorite = True
-                                    spread = abs(away_spread)
+                                point = outcome.get('point', 0)
+                                away_is_favorite = point < 0
+                                away_spread = abs(point) if away_is_favorite else None
 
                     h2h_market = next(
                         (m for m in bookmaker['markets'] if m['key'] == 'h2h'),
@@ -190,7 +213,7 @@ class Command(BaseCommand):
 
                 home_team.opponent = away_team_name
                 home_team.game_time = commence_time
-                home_team.spread = spread if home_is_favorite else None
+                home_team.spread = home_spread
                 home_team.moneyline = moneyline_home
                 home_team.is_home = True
                 home_team.current_week = week
@@ -199,23 +222,18 @@ class Command(BaseCommand):
 
                 away_team.opponent = home_team_name
                 away_team.game_time = commence_time
-                away_team.spread = spread if away_is_favorite else None
+                away_team.spread = away_spread
                 away_team.moneyline = moneyline_away
                 away_team.is_home = False
                 away_team.current_week = week
                 away_team.is_favorite = away_is_favorite
                 away_team.save()
 
-                Game.objects.filter(
-                    season_year=year,
-                    week=week,
-                    home_team=home_team,
-                    away_team=away_team,
-                ).update(
-                    home_spread=spread if home_is_favorite else None,
+                Game.objects.filter(pk=stored_game.pk if stored_game else None).update(
+                    home_spread=home_spread,
                     home_moneyline=moneyline_home,
                     home_is_favorite=home_is_favorite,
-                    away_spread=spread if away_is_favorite else None,
+                    away_spread=away_spread,
                     away_moneyline=moneyline_away,
                     away_is_favorite=away_is_favorite,
                 )
@@ -223,10 +241,11 @@ class Command(BaseCommand):
                 updated_count += 1
                 favorite_status = 'favorite' if home_is_favorite or away_is_favorite else 'no favorite'
                 game_time_str = commence_time.strftime("%a %I:%M %p EST")
+                bookmaker_name = bookmaker['title'] if bookmaker else 'existing odds preserved'
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'Updated: {away_team_name} @ {home_team_name} ({favorite_status}) '
-                        f'- {game_time_str} (Week {week})'
+                        f'- {game_time_str} (Week {week}, {bookmaker_name})'
                     )
                 )
 

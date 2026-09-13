@@ -1,7 +1,7 @@
 ﻿from django import forms
 from django.conf import settings
 from .models import Game, Pick, Team
-from .utils import is_pick_locked, is_team_game_started, is_week_locked
+from .utils import is_pick_locked, is_team_game_started
 
 CHOICES = ((1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8),
            (9, 9), (10, 10), (11, 11), (12, 12), (13, 13), (14, 14), (15, 15),
@@ -141,17 +141,16 @@ class PostForm(forms.ModelForm):
 
         if week:
             week_num = int(week)
+            # Once the selected team's game starts, freeze the entire pick;
+            # switching to a later game would bypass that team's kickoff lock.
             if self.current_pick and is_pick_locked(self.current_pick):
                 raise forms.ValidationError(
                     f"{self.current_pick.team.team_name}'s game has started, so this pick can no longer be changed."
                 )
-            if self.current_pick and team and is_team_game_started(team, week_num):
+            # Started teams are unavailable for both first picks and allowed switches.
+            if team and is_team_game_started(team, week_num):
                 raise forms.ValidationError(
                     f"{team.team_name}'s game has already started. Please choose a team whose game has not started."
-                )
-            if not self.current_pick and is_week_locked(week_num):
-                raise forms.ValidationError(
-                    f"Week {week_num} is locked. Picks cannot be made or changed after 1:05 PM ET Sunday."
                 )
 
             if team and not self._team_available_for_week(team, week_num):

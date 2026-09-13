@@ -5,16 +5,16 @@ from django.db import transaction
 
 from survivorPool.models import ChatMessage, Pick, Team, WeekLockRun
 from survivorPool.utils import (
+    all_week_games_started,
     build_picks_grid,
     get_current_nfl_week,
     get_league_member_usernames,
-    is_week_locked,
 )
 
 
 class Command(BaseCommand):
     help = (
-        'Lock a week at Sunday 1:05 PM ET: auto-loss for missing picks, '
+        'Finalize a week after every game starts: auto-loss for missing picks, '
         'then post the weekly summary to league chat.'
     )
 
@@ -23,7 +23,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--force',
             action='store_true',
-            help='Run even if week is not locked yet or already ran',
+            help='Run before every game starts or after finalization already ran',
         )
 
     def handle(self, *args, **options):
@@ -31,17 +31,17 @@ class Command(BaseCommand):
         season_year = settings.NFL_SEASON_YEAR
         force = options['force']
 
-        if not force and not is_week_locked(week):
+        if not force and not all_week_games_started(week):
             self.stderr.write(
                 self.style.WARNING(
-                    f'Week {week} is not locked yet (Sunday 1:05 PM ET). Use --force to override.'
+                    f'Week {week} still has games available. Use --force to override.'
                 )
             )
             return
 
         if WeekLockRun.objects.filter(season_year=season_year, week=week).exists() and not force:
             self.stderr.write(
-                self.style.WARNING(f'Week {week} already locked for {season_year}. Use --force to re-run.')
+                self.style.WARNING(f'Week {week} already finalized for {season_year}. Use --force to re-run.')
             )
             return
 
@@ -63,6 +63,8 @@ class Command(BaseCommand):
                 username__in=league_usernames,
                 is_active=True,
             )
+            # Every missing entry is a No Pick loss, including players who exhausted
+            # their unused teams before the final kickoff made the week closable.
             for user in league_users:
                 if Pick.objects.filter(user_name=user, week=week).exists():
                     continue
@@ -89,12 +91,12 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS(
-            f'Week {week} locked. {len(missed_users)} missed pick(s). Chat summary posted.'
+            f'Week {week} finalized. {len(missed_users)} missed pick(s). Chat summary posted.'
         ))
 
     def _build_summary_message(self, week: int, missed_usernames: list[str]) -> str:
         grid = build_picks_grid(max_week=week)
-        lines = [f'Week {week} picks - LOCKED 1:05 PM ET', '']
+        lines = [f'Week {week} picks - FINAL', '']
 
         for player in grid['players']:
             cell = grid['pick_lookup'].get((week, player), {})
