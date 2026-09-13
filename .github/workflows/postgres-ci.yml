@@ -65,8 +65,9 @@ jobs:
       - name: Install browser test dependencies
         run: npm ci
 
-      - name: Install Chrome for Playwright
-        run: node node_modules/@playwright/test/cli.js install --with-deps chrome
+      # The Playwright projects use bundled Chromium, so install that exact browser.
+      - name: Install Chromium for Playwright
+        run: node node_modules/@playwright/test/cli.js install --with-deps chromium
 
       - name: Verify migrations render and apply on Postgres
         run: |
@@ -79,5 +80,5 @@ jobs:
           python manage.py check
           python manage.py test survivorPool
 
-      - name: Run Chrome smoke tests on Postgres
+      - name: Run Chromium smoke tests on Postgres
         run: node node_modules/@playwright/test/cli.js test
