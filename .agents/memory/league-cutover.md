@@ -13,3 +13,13 @@ picks in the app should not take precedence over that history.
 **How to apply:** Treat the sheet as the intended source of truth when designing
 the cutover import. This does not authorize immediate deletion or an import
 without validation and explicit confirmation.
+
+The user says red cells represent losses and green cells represent wins.
+Biggest-favorite losses need a manual override because that classification is
+not recorded in the sheet.
+
+**Why:** The user supplied these spreadsheet interpretation requirements.
+
+**How to apply:** Preserve Excel cell colors when reading the cutover file and
+provide an explicit staff correction for biggest-favorite loss classification;
+do not infer that classification solely from the result color.
