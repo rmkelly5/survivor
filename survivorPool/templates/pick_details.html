@@ -1,12 +1,16 @@
-<!-- Currently not used, to activate include the week in the anchor for the home.html file-->
-
 {% extends 'base.html' %}
-
 {% block content %}
-
-<h1>{{ pick.week}} - {{pick.user_name}}</h1>
-<small>{{pick.team}}</small>
-<br/><br/>
-<a href="{% url 'home' %}" class="btn btn-secondary">Back</a>
-
+<p class="eyebrow">Your selection · Week {{ pick.week }}</p>
+<h1>{% if pick.missed_deadline %}No pick recorded{% else %}{{ pick.team.team_name }}{% endif %}</h1>
+<div class="empty-state">
+    {% if pick.is_win == None %}<span class="badge badge-tbd">Pending result</span>
+    {% elif pick.is_win %}<span class="badge badge-win">Win</span>
+    {% else %}<span class="badge badge-loss">Loss</span>{% endif %}
+    <p>{% if pick.missed_deadline %}No selection was recorded for this week. You can keep playing next week.
+    {% elif pick.is_win != None %}The result for this pick has been recorded.
+    {% elif is_locked %}This pick is locked because the team's game has started.
+    {% else %}You can change your selection until this team's game kicks off.{% endif %}</p>
+    {% if not is_locked and not pick.missed_deadline and pick.is_win == None %}<a href="{% url 'add_pick' %}?week={{ pick.week }}" class="btn btn-primary">Change pick</a>{% endif %}
+    <a href="{% url 'home' %}" class="btn btn-secondary">Back to my picks</a>
+</div>
 {% endblock %}

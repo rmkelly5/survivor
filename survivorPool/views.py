@@ -69,7 +69,21 @@ class HomeView(ListView):
             return Pick.objects.none()
         return Pick.objects.filter(
             user_name=self.request.user,
-        ).select_related('team', 'user_name').order_by('week')
+        ).select_related('team', 'user_name').order_by('-week')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        picks = list(context['object_list'])
+        week = get_current_nfl_week()
+        context.update({
+            'current_week': week,
+            'season_year': settings.NFL_SEASON_YEAR,
+            'current_pick': next((pick for pick in picks if pick.week == week), None),
+            'wins': sum(pick.is_win is True for pick in picks),
+            'losses': sum(pick.is_win is False for pick in picks),
+            'pending': sum(pick.is_win is None for pick in picks),
+        })
+        return context
 
 
 class AddPickView(LoginRequiredMixin, CreateView):
@@ -85,35 +99,9 @@ class AddPickView(LoginRequiredMixin, CreateView):
         delta = today - season_start_date
         return min(delta.days // 7 + 1, 18)
 
-    def _get_loaded_weeks(self):
-        game_weeks = set(
-            Game.objects.filter(season_year=settings.NFL_SEASON_YEAR)
-            .values_list('week', flat=True)
-        )
-        team_weeks = set(
-            Team.objects.filter(current_week__isnull=False)
-            .values_list('current_week', flat=True)
-        )
-        return sorted(game_weeks | team_weeks)
-
     def _get_default_week(self):
-        current_week = self._get_current_nfl_week()
-        loaded_weeks = self._get_loaded_weeks()
-        if not loaded_weeks:
-            return current_week
-
-        picked_weeks = set(
-            Pick.objects.filter(user_name=self.request.user)
-            .values_list('week', flat=True)
-        )
-        for week in loaded_weeks:
-            if week not in picked_weeks:
-                return week
-
-        if current_week in loaded_weeks:
-            return current_week
-
-        return loaded_weeks[-1]
+        # Missing old picks must not send players back to a closed week.
+        return self._get_current_nfl_week()
 
     def _get_display_week(self):
         week_param = self.request.GET.get('week')
@@ -189,6 +177,7 @@ class AddPickView(LoginRequiredMixin, CreateView):
         context['biggest_favorites'] = biggest_favorites
         context['used_team_ids'] = used_team_ids
         context['display_week'] = display_week
+        context['current_week'] = self._get_current_nfl_week()
         context['selected_team_id'] = selected_team_id
         context['has_week_pick'] = Pick.objects.filter(
             user_name=self.request.user,
@@ -316,6 +305,11 @@ class PickDetailView(OwnerPickQuerysetMixin, DetailView):
     model = Pick
     template_name = 'pick_details.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_locked'] = is_pick_locked(self.object)
+        return context
+
 
 class UpdatePickView(OwnerPickQuerysetMixin, UpdateView):
     model = Pick
@@ -381,6 +375,13 @@ def all_picks_view(request):
     else:
         current_nfl_week = get_current_nfl_week(season_start_date)
 
+    try:
+        selected_week = int(request.GET.get('week', current_nfl_week))
+    except (TypeError, ValueError):
+        selected_week = current_nfl_week
+    if not 1 <= selected_week <= 18:
+        selected_week = current_nfl_week
+
     grid = build_picks_grid()
     leaderboard_rows = build_leaderboard_rows()
     leaderboard_lookup = {row['username']: row for row in leaderboard_rows}
@@ -399,7 +400,7 @@ def all_picks_view(request):
     current_week_cards = []
     if grid['players'] and current_nfl_week:
         for player in grid['players']:
-            cell = grid['pick_lookup'].get((current_nfl_week, player), {})
+            cell = grid['pick_lookup'].get((selected_week, player), {})
             current_week_cards.append({
                 'player': player,
                 'team': cell.get('team') or '-',
@@ -412,6 +413,8 @@ def all_picks_view(request):
         'rows': grid['rows'],
         'grid_summary': grid_summary,
         'current_nfl_week': current_nfl_week,
+        'selected_week': selected_week,
+        'week_choices': range(1, 19),
         'current_week_cards': current_week_cards,
         'season_year': settings.NFL_SEASON_YEAR,
     })

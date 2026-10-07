@@ -123,7 +123,7 @@ test('authenticated navigation pages render cleanly', async ({ page }, testInfo)
   monitor.assertClean();
 });
 
-test('make a pick defaults to next unpicked loaded week and supports outer weeks', async ({ page }, testInfo) => {
+test('make a pick defaults to current week and supports outer weeks', async ({ page }, testInfo) => {
   const monitor = await watchPage(page);
 
   await login(page, 'browser_picker');
@@ -134,7 +134,9 @@ test('make a pick defaults to next unpicked loaded week and supports outer weeks
   await page.goto('/add_pick/');
 
   await expect(page.getByRole('heading', { name: 'Make Your Pick' })).toBeVisible();
-  await expect(page.locator('select[name="week"]')).toHaveValue('2');
+  await expect(page.locator('select[name="week"]')).toHaveValue('1');
+  await expect(page.getByRole('button', { name: 'Previous week' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next week' })).toBeVisible();
   await expect(page.locator('.matchup-card')).toHaveCount(3);
   await expect(page.getByRole('button', { name: 'Submit Pick' })).toBeDisabled();
   await expectNoBrokenText(page);
@@ -142,6 +144,10 @@ test('make a pick defaults to next unpicked loaded week and supports outer weeks
   await page.locator('select[name="week"]').selectOption('7');
   await page.waitForURL(/week=7/);
   await expect(page.locator('select[name="week"]')).toHaveValue('7');
+  await page.getByRole('button', { name: 'Previous week' }).click();
+  await page.waitForURL(/week=6/);
+  await page.getByRole('button', { name: 'Next week' }).click();
+  await page.waitForURL(/week=7/);
   await expect(page.locator('.matchup-card')).toHaveCount(3);
   await expect(page.locator('label.team-card', { hasText: 'Bills' }).locator('input[name="team"]')).toBeDisabled();
 
@@ -151,6 +157,29 @@ test('make a pick defaults to next unpicked loaded week and supports outer weeks
   await capture(page, testInfo, 'make-pick-week-7');
 
   monitor.assertClean();
+});
+
+test('a new member can submit and reload a pick', async ({ page }, testInfo) => {
+  // Separate accounts keep parallel browser projects from changing each other's picks.
+  const username = `submit_${testInfo.project.name}_${Date.now()}`;
+  await page.goto('/members/register/');
+  await page.locator('input[name="username"]').fill(username);
+  await page.locator('input[name="password1"]').fill('Test4321!');
+  await page.locator('input[name="password2"]').fill('Test4321!');
+  await page.getByRole('button', { name: 'Create Account' }).click();
+  await page.waitForURL('**/members/login/');
+  await page.locator('input[name="username"]').fill(username);
+  await page.locator('input[name="password"]').fill('Test4321!');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('heading', { name: `${username}'s Picks` })).toBeVisible();
+  await page.goto('/add_pick/?week=7');
+  await page.locator('label.team-card', { hasText: 'Patriots' }).click();
+  await page.getByRole('button', { name: 'Submit Pick' }).click();
+  await page.waitForURL('/');
+  await page.reload();
+  await expect(page.locator('.pick-card')).toHaveCount(1);
+  await expect(page.locator('.pick-card')).toContainText('Week 7');
+  await expect(page.locator('.pick-card')).toContainText('Patriots');
 });
 
 test('mobile nav and league picks stay usable', async ({ page, isMobile }, testInfo) => {
@@ -177,6 +206,12 @@ test('mobile nav and league picks stay usable', async ({ page, isMobile }, testI
   await page.getByRole('link', { name: 'Make A Pick' }).click();
   await expect(page.getByRole('heading', { name: 'Make Your Pick' })).toBeVisible();
   await expect(page.locator('.team-card').first()).toBeVisible();
+  // Tables may scroll within their container; the phone page itself must not.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual((page.viewportSize()?.width || 0) + 1);
+  const weekControl = page.locator('select[name="week"]');
+  expect(await weekControl.evaluate(el => parseFloat(getComputedStyle(el).fontSize)))
+    .toBeGreaterThanOrEqual(16);
   await expectNoBrokenText(page);
 
   monitor.assertClean();

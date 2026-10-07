@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --navy:       #0d1b2a;
     --navy-mid:   #152238;
     --navy-light: #1e3350;
@@ -20,15 +20,14 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
-    background-color: var(--navy);
-    background-image:
-        radial-gradient(ellipse at 20% 10%, rgba(29,78,216,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 90%, rgba(29,78,216,0.08) 0%, transparent 60%);
-    background-attachment: scroll;
-    color: var(--white);
+    background: #f3f5f8;
+    color: var(--text-dark);
     font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
     min-height: 100vh;
     margin: 0;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* -- Local layout utilities -------------------------- */
@@ -102,10 +101,9 @@ body {
 
 /* -- Navbar ----------------------------------------- */
 .navbar {
-    background: var(--navy) !important;
-    border-bottom: 3px solid var(--blue) !important;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.5);
-    padding: 0 1.25rem;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
 }
 
 .navbar .container-fluid {
@@ -113,28 +111,32 @@ body {
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    gap: 24px;
+    max-width: 1200px;
+    margin: auto;
+    min-height: 76px;
 }
 
 .navbar-brand {
-    color: var(--white) !important;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    color: var(--navy);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 750;
+    font-size: 1.1rem;
+    letter-spacing: -0.03em;
 }
 
 .nav-link {
     display: block;
-    color: rgba(255,255,255,0.8) !important;
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #526078;
+    font: inherit;
     font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 1rem 0.9rem !important;
-    transition: color 0.2s, border-bottom 0.2s;
-    border-bottom: 3px solid transparent;
+    font-size: 0.88rem;
+    padding: 12px 10px;
+    border: 0;
+    border-radius: 7px;
+    transition: background-color 150ms, color 150ms;
 }
 
 .navbar-nav {
@@ -160,11 +162,13 @@ body {
 }
 
 .navbar-toggler {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.35);
-    border-radius: 4px;
+    background: var(--navy);
+    border: 0;
+    border-radius: 8px;
     cursor: pointer;
-    padding: 0.4rem 0.65rem;
+    padding: 12px;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .navbar-toggler-icon {
@@ -191,8 +195,8 @@ body {
 
 .nav-link:hover,
 .nav-link.active {
-    color: var(--white) !important;
-    border-bottom-color: var(--blue);
+    color: var(--blue);
+    background: #edf2ff;
 }
 
 .nav-link-admin {
@@ -209,31 +213,27 @@ body {
 
 /* -- Main Container --------------------------------- */
 .container {
-    background: var(--surface);
+    width: min(1200px, calc(100% - 48px));
+    margin: 40px auto 110px;
+    padding: 0;
     color: var(--text-dark);
-    padding: 2rem 2.5rem;
-    border-radius: 4px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    border-top: 4px solid var(--blue);
 }
 
 /* -- Headings --------------------------------------- */
 h1, h2, h3 {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 700;
+    font-family: inherit;
+    font-weight: 750;
     color: var(--text-dark);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 1rem;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+    margin: 0 0 1rem;
+    text-wrap: balance;
 }
 
 h1 {
-    font-size: 2rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 3px solid var(--blue);
-    display: inline-block;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    padding: 0;
+    border: 0;
 }
 
 h2 { font-size: 1.5rem; }
@@ -244,13 +244,13 @@ h3 { font-size: 1.2rem; }
     background: var(--blue);
     border: 2px solid var(--blue);
     color: var(--white) !important;
-    font-family: 'Inter', sans-serif;
+    font-family: inherit;
     font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 0.6rem 1.6rem;
-    border-radius: 3px;
+    font-size: 0.9rem;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 12px 20px;
+    border-radius: 8px;
     transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
@@ -261,7 +261,7 @@ h3 { font-size: 1.2rem; }
     color: var(--white) !important;
     box-shadow: 0 4px 14px var(--blue-glow);
     transform: translateY(-1px);
-    outline: none;
+    outline-offset: 3px;
 }
 
 .btn-primary:disabled {
@@ -277,13 +277,13 @@ h3 { font-size: 1.2rem; }
     background: transparent;
     border: 2px solid #cbd5e1;
     color: var(--text-muted);
-    font-family: 'Inter', sans-serif;
+    font-family: inherit;
     font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 0.55rem 1.5rem;
-    border-radius: 3px;
+    font-size: 0.9rem;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 12px 20px;
+    border-radius: 8px;
     transition: border-color 0.2s, color 0.2s;
 }
 
@@ -322,7 +322,7 @@ a:hover { color: var(--blue-hover); }
 }
 
 .table thead th {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -428,11 +428,10 @@ a:hover { color: var(--blue-hover); }
 
 .pick-card {
     border: 1px solid var(--border);
-    border-left: 5px solid var(--tbd);
-    border-radius: 6px;
-    padding: 1rem;
-    background: #f8fafc;
-    box-shadow: 0 2px 8px rgba(13,27,42,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    background: var(--white);
+    box-shadow: 0 2px 3px rgba(13,27,42,0.02);
 }
 
 .pick-card--win { border-left-color: var(--win); }
@@ -464,12 +463,15 @@ a:hover { color: var(--blue-hover); }
 
 .badge {
     display: inline-block;
-    padding: 0.18rem 0.48rem;
+    padding: 4px 9px;
+    font-size: 0.78rem;
 }
 
 /* -- Leaderboard ------------------------------------- */
 .standings-table {
-    min-width: 680px;
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
 }
 
 .rank-pill,
@@ -555,14 +557,14 @@ form p select:focus,
 form p textarea:focus {
     border-color: var(--blue);
     box-shadow: 0 0 0 3px var(--blue-glow);
-    outline: none;
+    outline-offset: 3px;
 }
 
 .form-control:focus,
 .form-select:focus {
     border-color: var(--blue);
     box-shadow: 0 0 0 3px var(--blue-glow);
-    outline: none;
+    outline-offset: 3px;
 }
 
 .form-label {
@@ -575,18 +577,21 @@ form p textarea:focus {
 
 /* -- Badges ----------------------------------------- */
 .badge {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 600;
     letter-spacing: 1px;
-    text-transform: uppercase;
-    border-radius: 3px;
+    text-transform: none;
+    border-radius: 6px;
 }
 
 /* -- Alerts ----------------------------------------- */
 .alert {
-    border-radius: 3px;
+    border-radius: 8px;
     border-left: 4px solid;
-    font-size: 0.92rem;
+    font-size: 0.95rem;
+    background: #e9effb;
+    padding: 16px;
+    margin-bottom: 20px;
 }
 
 .alert-danger  { border-left-color: var(--loss); }
@@ -600,15 +605,17 @@ form p textarea:focus {
 }
 
 /* -- Matchup card styles (add_pick page) ------------ */
-.matchups-grid { display: flex; flex-direction: column; gap: 14px; }
+.matchups-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
 
 .matchup-card {
     background: var(--white);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    transition: box-shadow 0.2s;
+    border-radius: 14px;
+    padding: 16px;
 }
 
 .matchup-card:hover {
@@ -616,7 +623,7 @@ form p textarea:focus {
 }
 
 .game-time {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -635,23 +642,25 @@ form p textarea:focus {
 
 .team-card {
     flex: 1;
-    max-width: 190px;
+    min-width: 0;
     text-align: center;
-    padding: 14px 10px;
+    padding: 24px 8px 12px;
     border: 2px solid transparent;
-    border-radius: 4px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-    background: var(--off-white);
+    transition: border-color 150ms, background-color 150ms;
+    background: #f7f9fc;
     display: block;
     position: relative;
 }
 
 .team-radio {
     position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
+    top: 10px;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue);
 }
 
 .team-card:not(.already-picked):hover {
@@ -662,18 +671,18 @@ form p textarea:focus {
 
 .team-card.selected {
     border-color: var(--blue);
-    background: #dbeafe;
-    box-shadow: 0 0 0 3px var(--blue-glow);
+    background: #edf2ff;
 }
 
 .team-card.already-picked {
-    opacity: 0.4;
+    opacity: 1;
     cursor: not-allowed;
-    filter: grayscale(70%);
+    background: #f0f2f5;
+    border-color: transparent;
 }
 
 .team-logo-wrap {
-    height: 72px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -681,19 +690,17 @@ form p textarea:focus {
 }
 
 .team-logo {
-    max-height: 64px;
-    max-width: 64px;
+    width: 44px;
+    height: 44px;
     object-fit: contain;
 }
 
 .team-name {
-    font-family: 'Oswald', sans-serif;
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 1rem;
     color: var(--text-dark);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
     margin-bottom: 4px;
+    overflow-wrap: anywhere;
 }
 
 .team-meta {
@@ -709,7 +716,7 @@ form p textarea:focus {
     color: var(--white);
     border-radius: 2px;
     padding: 1px 6px;
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 600;
     font-size: 0.7rem;
     letter-spacing: 1px;
@@ -723,7 +730,7 @@ form p textarea:focus {
 }
 
 .already-picked-label {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 0.65rem;
     color: var(--loss);
     font-weight: 600;
@@ -733,7 +740,7 @@ form p textarea:focus {
 }
 
 .vs-divider {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 0.9rem;
     font-weight: 700;
     color: #94a3b8;
@@ -796,7 +803,7 @@ form p textarea:focus {
 .picks-week-col {
     background: var(--navy);
     color: var(--white);
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 1.5px;
@@ -809,7 +816,7 @@ form p textarea:focus {
 }
 
 .picks-player-col {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.5px;
@@ -834,7 +841,7 @@ form p textarea:focus {
 .picks-week-num {
     background: var(--navy);
     color: var(--white);
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 0.95rem;
     font-weight: 700;
     text-align: center;
@@ -864,7 +871,7 @@ form p textarea:focus {
 .picks-summary-label {
     background: var(--navy);
     color: var(--white);
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 800;
     letter-spacing: 1px;
     padding: 0.65rem 1rem;
@@ -884,7 +891,7 @@ form p textarea:focus {
 
 .cell-team {
     display: block;
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 700;
     font-size: 0.88rem;
     color: var(--text-dark);
@@ -901,7 +908,7 @@ form p textarea:focus {
 
 .picks-badge {
     display: inline-block;
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 700;
     font-size: 0.65rem;
     letter-spacing: 1.2px;
@@ -942,7 +949,7 @@ form p textarea:focus {
 }
 
 #selected-label {
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-weight: 600;
     font-size: 0.9rem;
     text-transform: uppercase;
@@ -980,7 +987,7 @@ form p textarea:focus {
 
 .badge-tbd { background: var(--tbd); color: #fff; }
 .badge-win { background: var(--win); color: #fff; }
-.badge-loss { background: var(--loss); color: #fff; }
+.badge-loss { background: #fee2e2; color: #991b1b; }
 
 /* -- Week summary cards (mobile allPicks) ---------- */
 .week-summary-panel {
@@ -1016,7 +1023,7 @@ form p textarea:focus {
 
 .week-summary-player {
     font-weight: 700;
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     text-transform: uppercase;
 }
 
@@ -1230,7 +1237,7 @@ form p textarea:focus {
 .chat-fab:focus {
     background: var(--blue-hover);
     border-color: var(--blue-hover);
-    outline: none;
+    outline-offset: 3px;
 }
 
 .chat-widget.is-open + .chat-fab {
@@ -1257,9 +1264,9 @@ form p textarea:focus {
 
 @media (max-width: 640px) {
     .container {
-        padding: 1rem 1rem;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+        width: calc(100% - 32px);
+        padding: 0;
+        margin: 24px auto 110px;
     }
 
     h1 { font-size: 1.5rem; }
@@ -1280,14 +1287,11 @@ form p textarea:focus {
         padding: 1rem;
     }
 
-    .matchup-teams {
-        flex-direction: column;
-        gap: 10px;
-    }
+    .matchup-teams { gap: 8px; }
+    .matchups-grid { grid-template-columns: 1fr; }
 
     .team-card {
-        max-width: 100%;
-        width: 100%;
+        min-width: 0;
         min-height: 44px;
     }
 
@@ -1420,7 +1424,7 @@ form p textarea:focus {
 .ops-context strong {
     color: var(--navy);
     display: block;
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 1.2rem;
     margin-top: 0.15rem;
 }
@@ -1462,7 +1466,7 @@ form p textarea:focus {
 .ops-metric strong {
     color: var(--navy);
     display: block;
-    font-family: 'Oswald', sans-serif;
+    font-family: inherit;
     font-size: 1.65rem;
     line-height: 1.1;
     margin-top: 0.22rem;
@@ -1480,7 +1484,7 @@ form p textarea:focus {
 .ops-command-card--odds { border-top-color: #3b82a6; }
 .ops-command-card--results { border-top-color: var(--win); }
 .ops-card-top { align-items: center; display: flex; justify-content: space-between; }
-.ops-command-index { color: var(--blue); font-family: 'Oswald', sans-serif; font-size: 1.15rem; font-weight: 700; }
+.ops-command-index { color: var(--blue); font-family: inherit; font-size: 1.15rem; font-weight: 700; }
 .ops-command-state { color: var(--text-muted); font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
 .ops-command-card h2 { font-size: 1.35rem; letter-spacing: 0.04em; margin: 1rem 0 0.45rem; }
 .ops-command-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin: 0; max-width: 430px; }
@@ -1488,7 +1492,7 @@ form p textarea:focus {
 .ops-consequence--warn { background: #fff5f4; border-left-color: var(--loss); color: #8b2935; }
 .ops-action-form { margin-top: auto; }
 .ops-action-form .btn { width: 100%; }
-.btn-danger { background: var(--loss); border: 2px solid var(--loss); border-radius: 3px; color: var(--white); cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; padding: 0.6rem 1.1rem; text-transform: uppercase; }
+.btn-danger { background: var(--loss); border: 2px solid var(--loss); border-radius: 3px; color: var(--white); cursor: pointer; font-family: inherit; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; padding: 0.6rem 1.1rem; text-transform: uppercase; }
 .btn-danger:hover { background: #b91c1c; border-color: #b91c1c; color: var(--white); }
 .ops-runbook-note { align-items: flex-start; background: #eef4fb; border: 1px solid #d7e3f1; border-radius: 5px; color: var(--text-dark); display: flex; gap: 0.8rem; margin-top: 1.1rem; padding: 0.85rem 1rem; }
 .ops-note-mark { align-items: center; background: var(--navy); border-radius: 50%; color: var(--white); display: flex; flex: 0 0 22px; font-weight: 800; height: 22px; justify-content: center; }
@@ -1522,3 +1526,104 @@ form p textarea:focus {
     .ops-status-strip, .ops-toolbar { padding-left: 0; padding-right: 0; }
     .ops-context { width: 100%; }
 }
+
+/* Shared navigation and page structure. */
+.brand-mark { display: grid; place-items: center; width: 34px; height: 38px; border-radius: 10px; color: white; background: var(--blue); font-weight: 800; }
+.navbar-nav { width: 100%; gap: 4px; }
+.nav-account { margin-left: auto; position: relative; }
+.account-menu summary { cursor: pointer; padding: 12px; font-size: .88rem; font-weight: 650; min-height: 44px; }
+.account-menu-items { position: absolute; right: 0; min-width: 190px; padding: 8px; background: white; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px #0d1b2a15; z-index: 30; }
+.btn-nav-logout { background: none; width: 100%; text-align: left; cursor: pointer; }
+.skip-link { position: absolute; left: 16px; top: -80px; padding: 12px; background: white; z-index: 100; }
+.skip-link:focus { top: 8px; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.team-card:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 3px; }
+p { text-wrap: pretty; }
+.btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.form-control, .form-select { min-height: 44px; font-size: 1rem; border-radius: 8px; }
+.season-overview { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin: 28px 0 36px; }
+.week-spotlight { background: var(--navy); padding: 30px; border-radius: 16px; color: #c6d3e4; }
+.week-spotlight h2 { color: white; font-size: 1.8rem; }
+.week-spotlight .eyebrow { color: #a8bfff; }
+.week-spotlight p { margin-bottom: 16px; }
+.spotlight-link { color: white; display: inline-block; padding: 8px 0; font-weight: 650; text-decoration: underline; text-underline-offset: 5px; }
+.spotlight-link:hover { color: #a8bfff; }
+.season-stats { display: flex; align-items: center; justify-content: space-around; background: white; border: 1px solid var(--border); border-radius: 16px; padding: 24px 12px; gap: 12px; }
+.season-stats div { text-align: center; }
+.season-stats span { display: block; color: var(--text-muted); font-size: .88rem; }
+.season-stats strong { font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.section-heading h2 { font-size: 1.2rem; }
+.section-heading span { font-size: .85rem; }
+.board-week-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0; }
+.board-week-form label { font-weight: 650; }
+.week-selector { display: flex; align-items: center; gap: 12px; }
+.week-selector select { min-width: 100px; }
+.week-picker { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px 28px; margin: 24px 0; padding: 20px 24px; border: 1px solid var(--border); border-radius: 14px; background: #f8fafc; }
+.week-picker-copy .eyebrow { margin-bottom: 4px; }
+.week-picker-copy h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.week-picker-copy p:last-child { margin: 0; color: var(--text-muted); font-size: .9rem; }
+.week-picker-controls { display: flex; align-items: center; gap: 8px; }
+.week-picker-controls select { min-width: 145px; min-height: 48px; font-size: 1rem; font-weight: 700; background: white; }
+.week-step { width: 48px; height: 48px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; color: var(--navy); cursor: pointer; font-size: 1.35rem; line-height: 1; }
+.week-step:hover, .week-step:focus-visible { border-color: var(--blue); color: var(--blue); background: #edf2ff; }
+.week-current-note { grid-column: 1 / -1; color: var(--blue-hover); font-size: .82rem; font-weight: 700; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+.week-summary-panel { background: white; padding: 24px; border-radius: 14px; }
+.week-summary-cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.week-summary-card { padding: 16px; border-radius: 8px; min-width: 0; }
+.week-summary-player { text-transform: none; overflow-wrap: anywhere; }
+.week-summary-team { color: #526078; font-size: .88rem; }
+.picks-badge { font-size: .75rem; padding: 3px 7px; letter-spacing: 0; border-radius: 5px; }
+.picks-badge.win, .badge-win { background: #dcfce7; color: #166534; }
+.picks-badge.loss, .badge-loss { background: #fee2e2; color: #991b1b; }
+.picks-badge.tbd, .badge-tbd { background: #fef3c7; color: #92400e; }
+.picks-badge.empty { background: #e8edf3; color: #526078; }
+.cell-empty { color: #526078; }
+.table { margin: 0; }
+.table-responsive-wrapper { border: 1px solid var(--border); box-shadow: none; border-radius: 12px; }
+.biggest-favorite-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border: 1px solid #e4d29e; border-radius: 12px; background: #fffbeb; margin: 24px 0; }
+.biggest-favorite-kicker { font-size: .75rem; color: #785c16; }
+.biggest-favorite-heading h2 { font-size: 1rem; margin: 2px 0 0; }
+.biggest-favorite-teams, .biggest-favorite-team { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 650; }
+.biggest-favorite-logo { width: 32px; height: 32px; object-fit: contain; }
+.submit-row { position: sticky; bottom: 12px; z-index: 10; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: white; box-shadow: 0 8px 32px #0d1b2a18; margin-right: 100px; }
+#pick-form { padding-bottom: 24px; }
+.submit-row #selected-label { flex: 1; color: var(--text-dark) !important; }
+.chat-widget-close { width: 44px; height: 44px; }
+.chat-widget { transition: none; transform: none; }
+.chat-fab { font-size: .85rem; text-transform: none; letter-spacing: 0; min-height: 44px; box-shadow: 0 4px 12px #0d1b2a18; }
+.rules-content { max-width: 760px; }
+@media (max-width: 1100px) and (min-width: 992px) { .navbar .container-fluid { gap: 10px; } .nav-link { padding: 12px 7px; font-size: .82rem; } }
+@media (max-width: 991px) {
+    .navbar .container-fluid { gap: 0; }
+    .navbar-collapse { padding-bottom: 16px; }
+    .nav-account { margin-left: 0; }
+    .account-menu-items { position: static; box-shadow: none; }
+}
+@media (max-width: 760px) {
+    .season-overview { grid-template-columns: 1fr; gap: 16px; }
+    .week-spotlight { padding: 24px; }
+    .season-stats { padding: 16px; }
+    .season-stats strong { font-size: 2rem; }
+    .week-picker { grid-template-columns: 1fr; gap: 14px; padding: 18px; }
+    .week-picker-controls { width: 100%; }
+    .week-picker-controls select { flex: 1; }
+    .week-current-note { grid-column: auto; }
+}
+@media (max-width: 640px) {
+    .navbar { padding: 0 16px; }
+    .week-summary-panel { padding: 16px; }
+    .week-summary-cards { grid-template-columns: 1fr; }
+    .biggest-favorite-banner { align-items: flex-start; flex-direction: column; }
+    .submit-row { bottom: 0; margin-right: 0; border-radius: 12px 12px 0 0; padding: 12px; }
+    #pick-form { padding-bottom: 132px; }
+    .submit-row #selected-label { flex-basis: 100%; font-size: .9rem; }
+    body:has(#pick-form) .chat-fab { bottom: 132px; }
+    .standings-extra { display: none; }
+    .standings-table thead th, .standings-table tbody td { padding: 12px 8px; font-size: .8rem; }
+    .standings-table .player-cell { overflow-wrap: anywhere; }
+    .standings-table thead th { text-transform: none; letter-spacing: 0; white-space: normal; }
+    .chat-widget { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }

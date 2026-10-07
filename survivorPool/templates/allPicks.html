@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
 {% if user.is_authenticated %}
@@ -6,26 +6,31 @@
 <div class="picks-header">
     <p class="eyebrow">League Board</p>
     <h1 class="mb-1">{{ season_year }} League Picks</h1>
-    <p class="text-muted mb-3 picks-subtitle">Scan this week's board, then scroll the full pick history below.</p>
+    <p class="text-muted mb-3 picks-subtitle">Choose a week to see everyone’s picks and results.</p>
 
     <div class="picks-legend">
         <span class="picks-badge win">WIN</span>
         <span class="picks-badge loss">LOSS</span>
-        <span class="picks-badge tbd">TBD</span>
-        <span class="picks-badge empty">No Pick</span>
+        <span class="picks-badge tbd">Pending</span>
+        <span class="picks-badge empty">Not revealed</span>
     </div>
 </div>
 
+<form method="get" class="board-week-form">
+    <label for="board-week">View week</label>
+    <select name="week" id="board-week" class="form-select">{% for week in week_choices %}<option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>Week {{ week }}{% if week == current_nfl_week %} · Current{% endif %}</option>{% endfor %}</select>
+    <button class="btn btn-secondary" type="submit">Show picks</button>
+</form>
 {% if current_week_cards %}
 <div class="week-summary-panel mb-4">
-    <h2 class="h5 mb-2">Week {{ current_nfl_week }}</h2>
+    <h2 class="h5 mb-2">Week {{ selected_week }}</h2>
     <div class="week-summary-cards">
         {% for card in current_week_cards %}
         <div class="week-summary-card picks-cell--{{ card.status|lower }}">
-            <span class="week-summary-player">{{ card.player }}</span>
-            <span class="week-summary-team">{{ card.team }}</span>
+            <span class="week-summary-player">{{ card.player }}{% if card.player == user.username %} <small>(you)</small>{% endif %}</span>
+            <span class="week-summary-team">{% if card.missed_deadline %}No pick recorded{% elif card.team == "-" %}Not revealed{% else %}{{ card.team }}{% endif %}</span>
             {% if card.status %}
-            <span class="picks-badge {{ card.status|lower }}">{{ card.status }}</span>
+            <span class="picks-badge {{ card.status|lower }}">{% if card.status == "TBD" %}Pending{% else %}{{ card.status|title }}{% endif %}</span>
             {% endif %}
         </div>
         {% endfor %}
@@ -35,7 +40,8 @@
 
 {% if rows %}
 <h2 class="h5 mb-2">Full Pick Grid</h2>
-<div class="picks-scroll-wrapper">
+<p class="text-muted small">Scroll sideways for every player. The week column stays in place.</p>
+<div class="picks-scroll-wrapper" tabindex="0" role="region" aria-label="Full season pick history">
     <table class="picks-table">
         <thead>
             <tr>
@@ -55,8 +61,8 @@
                         <span class="cell-team">{{ cell.team }}</span>
                         <span class="picks-badge {{ cell.status|lower }}">{{ cell.status }}</span>
                     {% elif cell.missed_deadline %}
-                        <span class="cell-empty">-</span>
-                        <span class="picks-badge loss">LOSS</span>
+                        <span class="cell-empty">No pick</span>
+                        <span class="picks-badge loss">Loss</span>
                     {% else %}
                         <span class="cell-empty">-</span>
                     {% endif %}
@@ -73,13 +79,13 @@
                 {% endfor %}
             </tr>
             <tr>
-                <td class="picks-summary-label picks-sticky">Owed</td>
+                <td class="picks-summary-label picks-sticky">Loss fees</td>
                 {% for summary in grid_summary %}
                 <td class="picks-summary-cell">${{ summary.owed }}</td>
                 {% endfor %}
             </tr>
             <tr>
-                <td class="picks-summary-label picks-sticky">Total Pot</td>
+                <td class="picks-summary-label picks-sticky">Contribution</td>
                 {% for summary in grid_summary %}
                 <td class="picks-summary-cell">${{ summary.pot }}</td>
                 {% endfor %}

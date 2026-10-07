@@ -6,18 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Survivor Pool</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{% static 'style.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'style.css' %}?v=10">
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <nav class="navbar navbar-expand-lg navbar-dark" aria-label="Main navigation">
         <div class="container-fluid">
-          <a class="navbar-brand" href="{% url 'home' %}">Survivor Pool</a>
+          <a class="navbar-brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true">S</span> Survivor Pool</a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               {% if user.is_authenticated %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">My Picks</a></li>
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'add_pick' %}">Make A Pick</a>
                 </li>
@@ -33,21 +35,15 @@
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'rules' %}">Rules</a>
                 </li>
-                {% if user.is_staff %}
-                <li class="nav-item">
-                  <a class="nav-link nav-link-operations" href="{% url 'league_operations' %}">League Operations</a>
-                </li>
-                {% endif %}
-                {% if user.is_superuser %}
-                <li class="nav-item">
-                  <a class="nav-link nav-link-admin" href="{% url 'admin:index' %}">Admin Console</a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                  <form method="post" action="{% url 'logout' %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="nav-link btn-nav-logout">Logout</button>
-                  </form>
+                <li class="nav-item nav-account">
+                  <details class="account-menu">
+                    <summary>{{ user.username }}</summary>
+                    <div class="account-menu-items">
+                      {% if user.is_staff %}<a class="nav-link" href="{% url 'league_operations' %}">League Operations</a>{% endif %}
+                      {% if user.is_superuser %}<a class="nav-link" href="{% url 'admin:index' %}">Admin Console</a>{% endif %}
+                      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="nav-link btn-nav-logout">Logout</button></form>
+                    </div>
+                  </details>
                 </li>
               {% else %}
                 <li class="nav-item">
@@ -64,9 +60,9 @@
           </div>
         </div>
     </nav>
-    <div class="container">
+    <main class="container" id="main-content" tabindex="-1">
         {% block content %}{% endblock %}
-    </div>
+    </main>
     {% if user.is_authenticated %}
     <aside class="chat-widget" id="chat-widget" aria-label="League chat" aria-hidden="true">
       <div class="chat-widget-panel">
@@ -83,7 +79,7 @@
         <form method="post" class="chat-compose chat-compose--widget" id="chat-widget-form">
           {% csrf_token %}
           <div class="input-group">
-            <input type="text" name="body" class="form-control" placeholder="Message the league..." maxlength="2000" required autocomplete="off">
+            <input type="text" name="body" class="form-control" placeholder="Message the league..." maxlength="2000" required autocomplete="off" aria-label="Message the league">
             <button type="submit" class="btn btn-primary">Send</button>
           </div>
           <p class="chat-widget-error" id="chat-widget-error" aria-live="polite"></p>
@@ -97,6 +93,12 @@
     {% endif %}
     <script>
       document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.nav-link[href]').forEach(function(link) {
+          if (new URL(link.href).pathname === window.location.pathname) {
+            link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
+          }
+        });
         document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(button) {
           var target = document.querySelector(button.getAttribute('data-bs-target'));
           if (!target) return;
@@ -121,6 +123,7 @@
         const error = document.getElementById('chat-widget-error');
         let lastId = 0;
         let loaded = false;
+        let chatTrigger = null;
 
         // Format on the client so chat times follow each viewer's timezone.
         function formatChatTime(value) {
@@ -181,6 +184,7 @@
         }
 
         function openChat() {
+          chatTrigger = document.activeElement;
           widget.classList.add('is-open');
           widget.setAttribute('aria-hidden', 'false');
           fab.setAttribute('aria-expanded', 'true');
@@ -193,7 +197,12 @@
           widget.classList.remove('is-open');
           widget.setAttribute('aria-hidden', 'true');
           fab.setAttribute('aria-expanded', 'false');
+          if (chatTrigger) chatTrigger.focus();
         }
+
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape' && widget.classList.contains('is-open')) closeChat();
+        });
 
         if (fab) fab.addEventListener('click', openChat);
         if (navToggle) navToggle.addEventListener('click', openChat);

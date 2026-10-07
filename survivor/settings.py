@@ -67,7 +67,15 @@ CSRF_TRUSTED_ORIGINS = [
 # In production, users access the app directly over HTTPS — SameSite=Lax is correct
 # and far more compatible across browsers. SameSite=None in production causes
 # cookie issues in Safari and other browsers, breaking CSRF for all POST forms.
-if DEBUG:
+if DEBUG and os.environ.get('DJANGO_LOCAL_HTTP') == '1':
+    # Safari rejects Secure cookies on local HTTP. Opt in only for local
+    # development; production must retain HTTPS-only session and CSRF cookies.
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = False
+    X_FRAME_OPTIONS = 'DENY'
+elif DEBUG:
     CSRF_COOKIE_SAMESITE = 'None'
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'None'
@@ -213,6 +221,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'home'
+LOGIN_URL = '/members/login/'
 LOGOUT_REDIRECT_URL = 'home'
 
 STATICFILES_DIRS = []

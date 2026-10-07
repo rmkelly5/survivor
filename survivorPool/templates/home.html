@@ -1,16 +1,37 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
 
 {% if user.is_authenticated %}
     <div class="dashboard-header">
         <div>
-            <p class="eyebrow">Season Dashboard</p>
+            <p class="eyebrow">Your season</p>
             <h1 class="mb-1">{{ user.username }}'s Picks</h1>
-            <p class="text-muted mb-0">Track your weekly picks, outcomes, and no-pick losses.</p>
+            <p class="text-muted mb-0">One team each week. Follow your season here.</p>
         </div>
         <a href="{% url 'add_pick' %}" class="btn btn-primary">+ Make a Pick</a>
     </div>
+
+    <section class="season-overview" aria-label="Season overview">
+        <div class="week-spotlight">
+            <p class="eyebrow">{{ season_year }} season · Week {{ current_week }}</p>
+            {% if current_pick %}
+            <h2>{% if current_pick.missed_deadline %}No pick recorded{% else %}{{ current_pick.team.team_name }}{% endif %}</h2>
+            <p>{% if current_pick.is_win == None %}Your pick is in. Waiting for the result.{% elif current_pick.is_win %}A win on the board. Keep it going.{% else %}A loss this week. You're still in for the season.{% endif %}</p>
+            <a href="{% url 'pick_details' current_pick.pk %}" class="spotlight-link">View this week's pick →</a>
+            {% else %}
+            <h2>Your next pick starts here.</h2>
+            <p>Choose an unused team before its game kicks off.</p>
+            <a href="{% url 'add_pick' %}?week={{ current_week }}" class="spotlight-link">See Week {{ current_week }} matchups →</a>
+            {% endif %}
+        </div>
+        <div class="season-stats">
+            <div><span>Wins</span><strong>{{ wins }}</strong></div>
+            <div><span>Losses</span><strong>{{ losses }}</strong></div>
+            <div><span>Pending</span><strong>{{ pending }}</strong></div>
+        </div>
+    </section>
+    <div class="section-heading"><h2>Your pick history</h2><span class="text-muted">Most recent first</span></div>
 
     {% if object_list %}
         <div class="pick-card-grid mt-4">
@@ -19,11 +40,11 @@
                     <div class="pick-card-top">
                         <span class="pick-week">Week {{ pick.week }}</span>
                         {% if pick.is_win == None %}
-                            <span class="badge badge-tbd">TBD</span>
+                            <span class="badge badge-tbd">Pending</span>
                         {% elif pick.is_win %}
-                            <span class="badge badge-win">WIN</span>
+                            <span class="badge badge-win">Win</span>
                         {% else %}
-                            <span class="badge badge-loss">LOSS</span>
+                            <span class="badge badge-loss">Loss</span>
                         {% endif %}
                     </div>
                     <div class="pick-card-team">
@@ -31,7 +52,7 @@
                     </div>
                     <div class="pick-card-foot">
                         {% if pick.missed_deadline %}<span class="text-danger small">No weekly pick</span>{% else %}<span class="text-muted small">Submitted pick</span>{% endif %}
-                        <a href="{% url 'pick_details' pick.pk %}" class="btn btn-secondary btn-sm">View</a>
+                        <a href="{% url 'pick_details' pick.pk %}" class="btn btn-secondary btn-sm" aria-label="View Week {{ pick.week }} pick">View pick</a>
                     </div>
                 </div>
             {% endfor %}
