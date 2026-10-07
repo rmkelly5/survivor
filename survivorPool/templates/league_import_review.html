@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'league_import.css' %}">
+<div class="league-import">
+  <header class="li-header">
+    <a class="li-back" href="{% url 'league_import_upload' %}">← Import workspace</a>
+    <p class="li-kicker">Staff review / batch {{ batch.id }}</p>
+    <h1>Check the history before replacement</h1>
+    <p class="li-lede"><strong>{{ batch.filename }}</strong> · {{ batch.season_year }} season · through week {{ batch.completed_week }}</p>
+  </header>
+
+  {% if messages %}
+    <section class="li-messages" aria-label="Status messages" aria-live="polite">
+      {% for message in messages %}<p class="li-message li-message--{{ message.tags|default:'info' }}">{{ message }}</p>{% endfor %}
+    </section>
+  {% endif %}
+  {% if errors %}
+    <div class="li-alert li-alert--error" role="alert">
+      <h2>There are issues to resolve</h2>
+      <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+  {% if review.errors %}
+    <div class="li-alert li-alert--error" role="alert">
+      <h2>Review needs attention</h2>
+      <ul>{% for error in review.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+  {% if review.warnings %}
+    <div class="li-alert li-alert--warning" role="status">
+      <h2>Warnings to inspect</h2>
+      <ul>{% for warning in review.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+
+  {% if batch.status == "applied" %}
+    <section class="li-applied" aria-labelledby="applied-heading">
+      <span class="li-applied-mark" aria-hidden="true">✓</span>
+      <div>
+        <p class="li-kicker">Replacement complete</p>
+        <h2 id="applied-heading">This batch has been applied</h2>
+        <p>{{ batch.summary.imported_count }} picks imported; {{ batch.summary.replaced_count }} pilot picks replaced. {{ batch.summary.wins }} wins and {{ batch.summary.losses }} losses. Imported roster total: ${{ batch.summary.total }}.</p>
+        <a class="li-button li-button--primary" href="{% url 'league_import_backup' batch_id=batch.id %}">Open saved backup</a>
+      </div>
+    </section>
+  {% else %}
+    <section class="li-review-summary" aria-label="Batch coverage">
+      <div><span>Source</span><strong>{{ batch.filename }}</strong></div>
+      <div><span>Season</span><strong>{{ batch.season_year }}</strong></div>
+      <div><span>Through</span><strong>Week {{ batch.completed_week }}</strong></div>
+      {% if review %}
+        <div><span>Pick rows</span><strong>{{ review.pick_count }}</strong></div>
+        <div><span>Wins / losses</span><strong>{{ review.wins }} / {{ review.losses }}</strong></div>
+        <div><span>Existing picks to replace</span><strong>{{ review.existing_count }}</strong></div>
+      {% endif %}
+    </section>
+
+    <section class="li-panel li-review-panel" aria-labelledby="mapping-heading">
+      <div class="li-panel-heading">
+        <span class="li-step">02</span>
+        <div>
+          <p class="li-kicker">Reconcile the source</p>
+          <h2 id="mapping-heading">Map spreadsheet players</h2>
+        </div>
+      </div>
+      <p class="li-copy">Match each source name to an account. Then choose how every loss was recorded; blank means it has not been explicitly reviewed.</p>
+
+        <form method="post" class="li-form li-review-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="review">
+          {% if mapping_rows %}
+            <div class="li-table-wrap">
+              <table class="li-table li-map-table">
+                <caption class="li-sr-only">Map spreadsheet names to pool accounts</caption>
+                <thead><tr><th scope="col">Spreadsheet name</th><th scope="col">Pool account</th><th scope="col">Expected losses</th><th scope="col">Expected total</th></tr></thead>
+                <tbody>
+                  {% for row in mapping_rows %}
+                    <tr>
+                      <th scope="row">{{ row.name }}</th>
+                      <td>
+                        <label class="li-sr-only" for="mapping-{{ row.index }}">Account for {{ row.name }}</label>
+                        <select id="mapping-{{ row.index }}" name="mapping_{{ row.index }}" required>
+                          <option value="">Choose an account</option>
+                          {% for member in users %}
+                            <option value="{{ member.id }}" {% if row.selected_user_id == member.id|stringformat:"s" %}selected{% endif %}>{{ member.username }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      <td>{{ row.expected_losses }}</td>
+                      <td>{{ row.expected_total }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+          {% if loss_rows %}
+            <div class="li-section-heading li-subheading">
+              <div><p class="li-kicker">Explicit loss decisions</p><h3>Classify every loss row</h3></div>
+              <span class="li-count">{{ loss_rows|length }} to review</span>
+            </div>
+            <div class="li-table-wrap">
+              <table class="li-table li-loss-table">
+                <caption class="li-sr-only">Confirm each source loss as standard or favorite</caption>
+                <thead><tr><th scope="col">Player</th><th scope="col">Week</th><th scope="col">Team</th><th scope="col">Deadline</th><th scope="col">Loss type</th></tr></thead>
+                <tbody>
+                  {% for row in loss_rows %}
+                    <tr>
+                      <th scope="row">{{ row.player }}</th>
+                      <td>{{ row.week }}</td>
+                      <td>{{ row.team }}</td>
+                      <td>{% if row.missed_deadline %}<span class="li-tag li-tag--warning">Missed</span>{% else %}On time{% endif %}</td>
+                      <td>
+                        <label class="li-sr-only" for="loss-{{ row.key }}">Loss type for {{ row.player }}, week {{ row.week }}</label>
+                        <select id="loss-{{ row.key }}" name="loss_{{ row.key }}" required>
+                          <option value="">Choose type</option>
+                          <option value="standard" {% if row.selection == "standard" %}selected{% endif %}>Standard loss</option>
+                           {% if not row.missed_deadline %}<option value="favorite" {% if row.selection == "favorite" %}selected{% endif %}>Biggest/co-favorite loss</option>{% endif %}
+                        </select>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+          <button class="li-button li-button--primary" type="submit">Save review and validate</button>
+        </form>
+      {% if review_saved and review.ready %}<div class="li-success-note" role="status">Review saved. The counts below reflect the validated spreadsheet. Saving again updates the review required for confirmation.</div>{% endif %}
+    </section>
+
+    {% if review %}
+      <section class="li-panel li-totals-panel" aria-labelledby="totals-heading">
+        <div class="li-section-heading">
+          <div><p class="li-kicker">Reconciliation</p><h2 id="totals-heading">Player totals</h2></div>
+          <span class="li-count">{{ review.players|length }} players</span>
+        </div>
+        <p class="li-copy">Imported roster total: <strong>${{ review.total }}</strong>{% if batch.source.expected_pot %} · Spreadsheet pot: <strong>${{ batch.source.expected_pot }}</strong>{% endif %}. This total covers mapped spreadsheet players only.</p>
+        {% if review.players %}
+          <div class="li-table-wrap">
+            <table class="li-table">
+              <caption class="li-sr-only">Imported results compared with expected totals</caption>
+              <thead><tr><th scope="col">Source player</th><th scope="col">Mapped account</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Favorite losses</th><th scope="col">Total</th><th scope="col">Expected</th><th scope="col">Difference</th></tr></thead>
+              <tbody>{% for player in review.players %}
+                <tr>
+                  <th scope="row">{{ player.name }}</th><td>{{ player.username|default:"Unmapped" }}</td>
+                  <td>{{ player.wins }}</td><td>{{ player.losses }}</td><td>{{ player.favorite_losses }}</td>
+                  <td>{{ player.total }}</td><td>{{ player.expected_total }}</td>
+                   <td class="{% if player.difference and player.difference != '0.00' %}li-difference{% endif %}">{{ player.difference }}</td>
+                </tr>
+              {% endfor %}</tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="li-muted">Player totals will appear after the source rows are reviewed.</p>
+        {% endif %}
+        {% if review.omitted_users %}
+          <div class="li-alert li-alert--warning li-omitted">
+            <h3>Accounts omitted from the import</h3>
+            <p>These current accounts have no mapped source player: {% for username in review.omitted_users %}<strong>{{ username }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+             <p>Their pilot picks will also be deleted. They remain active league participants, so their buy-ins and any future automatic missed-pick losses still count in app standings.</p>
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <section class="li-panel li-history-preview" aria-labelledby="picks-heading">
+      <div class="li-section-heading">
+        <div><p class="li-kicker">Source history</p><h2 id="picks-heading">All imported picks</h2></div>
+        <span class="li-count">{{ pick_rows|length }} rows</span>
+      </div>
+      {% if pick_rows %}
+        <div class="li-table-wrap li-history-table-wrap">
+          <table class="li-table">
+            <caption class="li-sr-only">Complete historical pick preview from the imported spreadsheet</caption>
+            <thead><tr><th scope="col">Player</th><th scope="col">Week</th><th scope="col">Team</th><th scope="col">Outcome</th><th scope="col">Deadline</th><th scope="col">Source cell</th></tr></thead>
+            <tbody>{% for pick in pick_rows %}
+              <tr><th scope="row">{{ pick.player }}</th><td>{{ pick.week }}</td><td>{{ pick.team }}</td><td>{{ pick.status }}</td>
+                <td>{% if pick.missed_deadline %}<span class="li-tag li-tag--warning">Missed</span>{% else %}On time{% endif %}</td>
+                <td class="li-source-cell">{{ pick.source_cell|default:"—" }}</td></tr>
+            {% endfor %}</tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="li-empty"><p>No pick rows are available to preview yet.</p></div>
+      {% endif %}
+    </section>
+
+    {% if review_saved and review.ready %}
+      <section class="li-confirm-panel" aria-labelledby="confirm-heading">
+        <div class="li-panel-heading">
+          <span class="li-step li-step--danger">03</span>
+          <div><p class="li-kicker">Final action / destructive replacement</p><h2 id="confirm-heading">Replace the live history?</h2></div>
+        </div>
+        <div class="li-consequences">
+          <h3>What this replacement does</h3>
+          <ul>
+            <li>Deletes <strong>all pilot picks, including future picks</strong>, before loading this season’s reviewed history.</li>
+            <li>Preserves accounts, schedules, odds, settings, and ordinary league chat.</li>
+             <li>Rebuilds completed-week finalization records and removes obsolete generated weekly chat summaries.</li>
+            <li>Saves a backup atomically as part of the replacement.</li>
+            <li>A stale review must be reviewed again; confirmation cannot apply outdated counts.</li>
+          </ul>
+        </div>
+        <form method="post" class="li-form li-confirm-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="confirm">
+          <input type="hidden" name="review_token" value="{{ batch.review.review_token }}">
+          <label for="replace-confirmation">Type <code>REPLACE {{ batch.season_year }}</code> to confirm</label>
+          <input id="replace-confirmation" name="confirmation" type="text" autocomplete="off" required pattern="REPLACE {{ batch.season_year }}" aria-describedby="replace-help">
+          <span class="li-help" id="replace-help">This exact phrase confirms replacement for the {{ batch.season_year }} season.</span>
+          <label class="li-check"><input type="checkbox" name="ack_replace" value="yes" required><span>I understand all pilot picks, including future picks, will be deleted.</span></label>
+          {% if review.omitted_users %}
+            <label class="li-check"><input type="checkbox" name="ack_omitted" value="yes" required><span>I have reviewed the accounts omitted from this import.</span></label>
+          {% endif %}
+          {% if review.warnings %}
+            <label class="li-check"><input type="checkbox" name="ack_warnings" value="yes" required><span>I have reviewed the warnings listed above.</span></label>
+          {% endif %}
+          <button class="li-button li-button--danger" type="submit">Confirm and replace history</button>
+        </form>
+      </section>
+    {% elif review_saved %}
+      <p class="li-blocked-note" role="status">Replacement is unavailable until every review issue is resolved and the review is ready.</p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

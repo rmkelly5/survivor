@@ -72,7 +72,8 @@ class Command(BaseCommand):
                     losing_team = Team.objects.get(team_name=loser_nickname)
                     losses_count = Pick.objects.filter(
                         team=losing_team,
-                        week=current_week
+                        week=current_week,
+                        imported_result=False,
                     ).update(is_win=False)
                     losses_updated += losses_count
                     ties_updated += losses_count
@@ -94,7 +95,8 @@ class Command(BaseCommand):
                 winning_team = Team.objects.get(team_name=winner_nickname)
                 wins_count = Pick.objects.filter(
                     team=winning_team,
-                    week=current_week
+                    week=current_week,
+                    imported_result=False,
                 ).update(is_win=True)
                 wins_updated += wins_count
                 
@@ -106,7 +108,8 @@ class Command(BaseCommand):
                 losing_team = Team.objects.get(team_name=loser_nickname)
                 losses_count = Pick.objects.filter(
                     team=losing_team,
-                    week=current_week
+                    week=current_week,
+                    imported_result=False,
                 ).update(is_win=False)
                 losses_updated += losses_count
                 

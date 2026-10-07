@@ -58,7 +58,7 @@ def is_team_game_started(team: Team, week_number: int) -> bool:
 
 
 def is_pick_locked(pick: Pick) -> bool:
-    return pick.missed_deadline or is_team_game_started(pick.team, pick.week)
+    return pick.imported_result or pick.missed_deadline or is_team_game_started(pick.team, pick.week)
 
 
 def pick_status(is_win) -> str:
@@ -160,8 +160,14 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
     for pick in Pick.objects.filter(
         is_win=False,
         user_name__is_active=True,
-    ).values('user_name_id', 'team_id', 'week'):
-        if pick['team_id'] in biggest_favorite_ids.get(pick['week'], set()):
+    ).values('user_name_id', 'team_id', 'week', 'favorite_loss_override', 'missed_deadline'):
+        is_favorite = pick['favorite_loss_override']
+        if is_favorite is None:
+            is_favorite = (
+                not pick['missed_deadline']
+                and pick['team_id'] in biggest_favorite_ids.get(pick['week'], set())
+            )
+        if is_favorite:
             favorite_losses_by_user[pick['user_name_id']] += 1
 
     users = User.objects.filter(

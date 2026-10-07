@@ -2,6 +2,7 @@ import datetime
 import io
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -16,6 +17,7 @@ from django_tables2 import SingleTableView
 
 from .forms import PostForm
 from .models import Game, Pick, Team, WeekLockRun
+from .league_write import PickWriteTransactionMixin
 from .tables import PickTable
 from .utils import (
     build_leaderboard_rows,
@@ -86,7 +88,7 @@ class HomeView(ListView):
         return context
 
 
-class AddPickView(LoginRequiredMixin, CreateView):
+class AddPickView(LoginRequiredMixin, PickWriteTransactionMixin, CreateView):
     model = Pick
     form_class = PostForm
     template_name = 'add_pick.html'
@@ -311,7 +313,7 @@ class PickDetailView(OwnerPickQuerysetMixin, DetailView):
         return context
 
 
-class UpdatePickView(OwnerPickQuerysetMixin, UpdateView):
+class UpdatePickView(OwnerPickQuerysetMixin, PickWriteTransactionMixin, UpdateView):
     model = Pick
     template_name = 'update_pick.html'
 
@@ -343,11 +345,17 @@ class UpdatePickView(OwnerPickQuerysetMixin, UpdateView):
         return super().form_valid(form)
 
 
-class DeletePickView(OwnerPickQuerysetMixin, DeleteView):
+class DeletePickView(OwnerPickQuerysetMixin, PickWriteTransactionMixin, DeleteView):
     model = Pick
     template_name = 'delete_pick.html'
     fields = ['week']
     success_url = reverse_lazy('home')
+
+    def form_valid(self, form):
+        if self.object.imported_result:
+            messages.error(self.request, 'Imported historical picks cannot be deleted. Contact staff for corrections.')
+            return redirect('pick_details', pk=self.object.pk)
+        return super().form_valid(form)
 
 
 class PickView(SingleTableView):

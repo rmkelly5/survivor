@@ -97,6 +97,15 @@
     </form>
   </section>
 
+  <section class="ops-import-link" aria-labelledby="ops-import-heading">
+    <div>
+      <p class="ops-kicker">Spreadsheet cutover</p>
+      <h2 id="ops-import-heading">Move league history out of Sheets</h2>
+      <p>Upload the historical pool, reconcile player names and losses, then review exactly what will be replaced before applying it.</p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'league_import_upload' %}">Open import workspace</a>
+  </section>
+
   <div class="ops-command-grid">
     <article class="ops-command-card ops-command-card--schedule">
       <div class="ops-card-top">

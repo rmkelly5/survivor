@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'league_import.css' %}">
+<div class="league-import">
+  <header class="li-header">
+    <a class="li-back" href="{% url 'league_import_upload' %}">← Import workspace</a>
+    <p class="li-kicker">Staff workspace / outcome corrections</p>
+    <h1>Loss overrides</h1>
+    <p class="li-lede">Pin a pick’s loss classification when the automatic outcome does not match the reviewed record. Every change is recorded in the audit trail.</p>
+  </header>
+
+  {% if messages %}
+    <section class="li-messages" aria-label="Status messages" aria-live="polite">
+      {% for message in messages %}<p class="li-message li-message--{{ message.tags|default:'info' }}">{{ message }}</p>{% endfor %}
+    </section>
+  {% endif %}
+  {% if errors %}
+    <div class="li-alert li-alert--error" role="alert"><ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
+  {% endif %}
+
+  <aside class="li-side-note li-side-note--wide">
+    <span class="li-note-mark" aria-hidden="true">i</span>
+    <div><h2>Outcomes stay pinned</h2><p>Imported losses must remain Standard or Favorite; they cannot be reset to automatic. Normal picks may use Auto. Add a reason whenever you save a change.</p></div>
+  </aside>
+
+  <section class="li-panel li-override-panel" aria-labelledby="override-heading">
+    <div class="li-section-heading">
+      <div><p class="li-kicker">Editable records</p><h2 id="override-heading">Pick outcomes</h2></div>
+      <span class="li-count">{{ entries|length }} entries</span>
+    </div>
+    {% if entries %}
+      <div class="li-override-list">
+        {% for entry in entries %}
+          <article class="li-override-row">
+            <div class="li-override-pick">
+              <span class="li-kicker">Week {{ entry.week }}</span>
+              <h3>{{ entry.user.username }}</h3>
+              <p>{{ entry.team|default:entry.pick.team }} <span aria-hidden="true">·</span> {{ entry.pick }}</p>
+              {% if entry.pick.imported_result %}
+                <span class="li-origin li-origin--imported">Imported loss</span>
+              {% else %}
+                <span class="li-origin">Normal pick</span>
+              {% endif %}
+            </div>
+            <form method="post" class="li-override-form">
+              {% csrf_token %}
+              <input type="hidden" name="pick_id" value="{{ entry.pick.id }}">
+              <div class="li-field">
+                <label for="override-{{ entry.pick.id }}">Loss classification</label>
+                <select id="override-{{ entry.pick.id }}" name="override" required>
+                  {% if entry.pick.imported_result %}
+                    <option value="standard" {% if entry.override_value == "standard" %}selected{% endif %}>Standard loss</option>
+                    {% if not entry.pick.missed_deadline %}<option value="favorite" {% if entry.override_value == "favorite" %}selected{% endif %}>Biggest/co-favorite loss</option>{% endif %}
+                  {% else %}
+                    <option value="auto" {% if entry.override_value == "auto" %}selected{% endif %}>Automatic</option>
+                    <option value="standard" {% if entry.override_value == "standard" %}selected{% endif %}>Standard loss</option>
+                    {% if not entry.pick.missed_deadline %}<option value="favorite" {% if entry.override_value == "favorite" %}selected{% endif %}>Biggest/co-favorite loss</option>{% endif %}
+                  {% endif %}
+                </select>
+              </div>
+              <div class="li-field">
+                <label for="reason-{{ entry.pick.id }}">Reason</label>
+                <input id="reason-{{ entry.pick.id }}" name="reason" type="text" required maxlength="500" placeholder="Why is this loss classification being corrected?">
+              </div>
+              <button class="li-button li-button--secondary" type="submit">Save override</button>
+              {% if entry.form and entry.form.errors %}<div class="li-field-errors" role="alert">{{ entry.form.errors }}</div>{% endif %}
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="li-empty"><span class="li-empty-index">—</span><p>No picks currently need an outcome override.</p></div>
+    {% endif %}
+  </section>
+
+  <section class="li-panel li-audit-panel" aria-labelledby="audit-heading">
+    <div class="li-section-heading">
+      <div><p class="li-kicker">Change history</p><h2 id="audit-heading">Override audit trail</h2></div>
+      <span class="li-count">{{ audit_rows|length }} changes</span>
+    </div>
+    {% if audit_rows %}
+      <div class="li-table-wrap">
+        <table class="li-table">
+          <caption class="li-sr-only">Recorded loss override changes</caption>
+          <thead><tr><th scope="col">When</th><th scope="col">Staff member</th><th scope="col">Pick</th><th scope="col">Change</th><th scope="col">Reason</th></tr></thead>
+          <tbody>{% for row in audit_rows %}
+            <tr>
+              <td>{{ row.created_at|date:"M j, Y · g:i a" }}</td>
+              <td>{{ row.actor }}</td>
+              <td>{% if row.pick %}{{ row.pick }}{% else %}{{ row.pick_snapshot.username }} / Week {{ row.pick_snapshot.week }} / {{ row.pick_snapshot.team }}{% endif %}</td>
+              <td><span class="li-audit-value">{% if row.old_value == None %}Automatic{% elif row.old_value %}Biggest favorite{% else %}Standard{% endif %}</span><span class="li-audit-arrow" aria-hidden="true"> → </span><span class="li-audit-value">{% if row.new_value == None %}Automatic{% elif row.new_value %}Biggest favorite{% else %}Standard{% endif %}</span></td>
+              <td>{{ row.reason }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="li-empty"><p>No override changes have been recorded.</p></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

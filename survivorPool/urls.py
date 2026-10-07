@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import chat_views
+from . import league_import_views
 from .views import (
     AddPickView,
     DeletePickView,
@@ -24,6 +25,10 @@ urlpatterns = [
     path('leaderboard/', PickView.as_view(), name="leaderboard"),
     path('league_leaderboard/', league_leaderboard_view, name="league_leaderboard"),
     path('league-operations/', league_operations_view, name="league_operations"),
+    path('league-operations/import/', league_import_views.league_import_upload, name='league_import_upload'),
+    path('league-operations/import/<uuid:batch_id>/', league_import_views.league_import_review, name='league_import_review'),
+    path('league-operations/import/<uuid:batch_id>/backup/', league_import_views.league_import_backup, name='league_import_backup'),
+    path('league-operations/loss-overrides/', league_import_views.league_loss_overrides, name='league_loss_overrides'),
     path('allPicks/', all_picks_view, name="allPicks"),
     path('chat/', chat_views.chat_view, name="chat"),
     path('chat/poll/', chat_views.chat_poll_api, name="chat_poll"),

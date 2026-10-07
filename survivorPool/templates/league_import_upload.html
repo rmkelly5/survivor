@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'league_import.css' %}">
+<div class="league-import">
+  <header class="li-header">
+    <a class="li-back" href="{% url 'league_operations' %}">← League operations</a>
+    <p class="li-kicker">Staff workspace / spreadsheet cutover</p>
+    <h1>Import the pool history</h1>
+    <p class="li-lede">Bring the current spreadsheet into the app with a deliberate review of every player, pick, and outstanding loss before anything is replaced.</p>
+  </header>
+
+  {% if messages %}
+    <section class="li-messages" aria-label="Status messages" aria-live="polite">
+      {% for message in messages %}
+        <p class="li-message li-message--{{ message.tags|default:'info' }}">{{ message }}</p>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <div class="li-alert li-alert--error" role="alert">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="li-upload-layout">
+    <section class="li-panel li-upload-panel" aria-labelledby="upload-heading">
+      <div class="li-panel-heading">
+        <span class="li-step">01</span>
+        <div>
+          <p class="li-kicker">Start here</p>
+          <h2 id="upload-heading">Choose a spreadsheet</h2>
+        </div>
+      </div>
+      <p class="li-copy">Upload the source file and identify the season and last completed week represented in it. You will map names and verify outcomes in the next step.</p>
+      <form method="post" enctype="multipart/form-data" class="li-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload">
+        {% if form %}
+          {{ form.as_p }}
+        {% endif %}
+        <button class="li-button li-button--primary" type="submit">Upload and review</button>
+      </form>
+    </section>
+
+    <aside class="li-side-note">
+      <span class="li-note-mark" aria-hidden="true">i</span>
+      <div>
+        <h2>Nothing changes on upload</h2>
+        <p>Uploading stores a reviewable copy only. Existing picks and league records remain untouched until the final confirmation.</p>
+        <a href="{% url 'league_loss_overrides' %}">Review loss overrides <span aria-hidden="true">→</span></a>
+      </div>
+    </aside>
+  </div>
+
+  <section class="li-history" aria-labelledby="history-heading">
+    <div class="li-section-heading">
+      <div>
+        <p class="li-kicker">Import ledger</p>
+        <h2 id="history-heading">Recent batches</h2>
+      </div>
+      <span class="li-count">{{ imports|length }} batch{{ imports|length|pluralize }}</span>
+    </div>
+    {% if imports %}
+      <div class="li-table-wrap">
+        <table class="li-table">
+          <caption class="li-sr-only">Uploaded spreadsheet batches and their status</caption>
+          <thead>
+            <tr><th scope="col">Source file</th><th scope="col">Season / through</th><th scope="col">Status</th><th scope="col">Uploaded</th><th scope="col">Summary</th></tr>
+          </thead>
+          <tbody>
+            {% for batch in imports %}
+              <tr>
+                <th scope="row">
+                  {% if batch.status == "applied" %}
+                    <a href="{% url 'league_import_backup' batch_id=batch.id %}">{{ batch.filename }}</a>
+                  {% else %}
+                    <a href="{% url 'league_import_review' batch_id=batch.id %}">{{ batch.filename }}</a>
+                  {% endif %}
+                </th>
+                <td>{{ batch.season_year }} <span class="li-muted">/ week {{ batch.completed_week }}</span></td>
+                <td><span class="li-status li-status--{{ batch.status|slugify }}">{{ batch.get_status_display|default:batch.status }}</span></td>
+                <td>{{ batch.created_at|date:"M j, Y · g:i a" }}</td>
+                <td>{% if batch.applied_at %}{{ batch.summary.imported_count }} picks / ${{ batch.summary.total }}<span class="li-muted li-block">Applied {{ batch.applied_at|date:"M j, Y · g:i a" }}</span>{% else %}Not applied{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="li-empty">
+        <span class="li-empty-index">—</span>
+        <p>No spreadsheet batches yet. Upload a file to begin a review; the live pool will not change until you confirm.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

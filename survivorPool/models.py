@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.urls import reverse
+from django.core.serializers.json import DjangoJSONEncoder
+import uuid
 
 class Team(models.Model):
     team_name = models.CharField(max_length=50)
@@ -57,6 +59,17 @@ class Pick(models.Model):
         default=False,
         db_default=False,
         help_text="Auto-assigned loss when no pick was made before the final weekly kickoff.",
+    )
+    imported_result = models.BooleanField(
+        default=False,
+        db_default=False,
+        help_text="Historical spreadsheet outcome; routine result updates must not overwrite it.",
+    )
+    favorite_loss_override = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="None uses weekly odds; False is a standard loss; True is a biggest-favorite loss.",
     )
 
     class Meta:
@@ -123,4 +136,39 @@ class SeasonSettings(models.Model):
 
     def __str__(self):
         return f"Season {self.season_year} settings"
+
+
+class LeagueImport(models.Model):
+    STATUS_DRAFT = 'draft'
+    STATUS_REVIEWED = 'reviewed'
+    STATUS_APPLIED = 'applied'
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+    filename = models.CharField(max_length=255)
+    season_year = models.IntegerField()
+    completed_week = models.IntegerField()
+    status = models.CharField(max_length=16, default=STATUS_DRAFT)
+    source = models.JSONField(encoder=DjangoJSONEncoder)
+    review = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
+    fingerprint = models.CharField(max_length=64, blank=True)
+    backup = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
+    summary = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class PickLossAdjustment(models.Model):
+    pick = models.ForeignKey(Pick, null=True, on_delete=models.SET_NULL)
+    actor = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+    old_value = models.BooleanField(null=True)
+    new_value = models.BooleanField(null=True)
+    reason = models.CharField(max_length=500)
+    pick_snapshot = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ['-created_at']
 

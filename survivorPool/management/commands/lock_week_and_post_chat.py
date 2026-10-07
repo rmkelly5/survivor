@@ -56,7 +56,9 @@ class Command(BaseCommand):
                     message_type=ChatMessage.MESSAGE_WEEKLY_LOCK,
                     week=week,
                 ).delete()
-                Pick.objects.filter(week=week, missed_deadline=True).delete()
+                Pick.objects.filter(
+                    week=week, missed_deadline=True, imported_result=False,
+                ).delete()
 
             missed_users = []
             league_users = User.objects.filter(

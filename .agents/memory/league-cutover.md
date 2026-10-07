@@ -23,3 +23,12 @@ not recorded in the sheet.
 **How to apply:** Preserve Excel cell colors when reading the cutover file and
 provide an explicit staff correction for biggest-favorite loss classification;
 do not infer that classification solely from the result color.
+
+Imported historical outcomes and manual biggest-favorite classifications are
+authoritative history, not values to recompute from later odds or results feeds.
+
+**Why:** The spreadsheet runs the real league, while the app's automated data
+and pilot history may disagree with it.
+
+**How to apply:** Preserve imported history through routine results posting and
+odds refreshes. Staff classification corrections should be explicit and audited.

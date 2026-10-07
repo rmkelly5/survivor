@@ -20,3 +20,14 @@ local test database; otherwise Django's URL precedence connects the test seeder
 to the shared league database. Replit Publish schema validation is separate: it
 diffs the managed development database against managed production, so a Django
 migration against Neon does not update the schema Publish introspects.
+
+Schema-dependent code must not be left running while its migration is pending.
+Django's development server reloads edited Python immediately.
+
+**Why:** During an additive feature build, the running leaderboard began querying
+a new column before its migration was applied, causing a missing-column error.
+
+**How to apply:** Coordinate additive migrations with the running server early
+in the build, or pause the server until code and schema are compatible. Verify
+existing league records remain unchanged; never run a cutover or seeder merely
+to make the new schema usable.
