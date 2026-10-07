@@ -1,5 +1,6 @@
 import datetime
 import io
+import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -7,6 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
@@ -23,6 +25,8 @@ from .utils import (
     get_current_nfl_week,
     is_pick_locked,
 )
+
+logger = logging.getLogger(__name__)
 
 NFL_TEAM_LOGOS = {
     'Cardinals': 'ari',
@@ -455,9 +459,20 @@ def league_operations_view(request):
                     **command_options,
                 )
                 command_status = 'success'
-            except Exception as exc:
+                logger.info('League operation completed: command=%s season=%s week=%s',
+                            command_name, settings.NFL_SEASON_YEAR, selected_week)
+            except CommandError as exc:
+                # Expected command refusals (such as an open pick window) are not crashes.
+                logger.warning('League operation refused: command=%s season=%s week=%s',
+                               command_name, settings.NFL_SEASON_YEAR, selected_week)
                 command_status = 'error'
                 output.write(f'\nOperation failed: {exc}')
+            except Exception as exc:
+                # Caught exceptions never reach Django's automatic 500 capture.
+                logger.exception('League operation failed: command=%s season=%s week=%s',
+                                 command_name, settings.NFL_SEASON_YEAR, selected_week)
+                command_status = 'error'
+                output.write('\nOperation failed. Details were recorded in the server error log.')
             command_output = output.getvalue().strip() or 'Command completed without additional output.'
         else:
             command_title = 'Unknown operation'

@@ -16,6 +16,9 @@ import datetime
 
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
+from survivor.observability import before_send
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,12 +34,33 @@ SENTRY_DSN = os.environ.get('SENTRY_DSN')
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
+        integrations=[DjangoIntegration(), LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)],
         environment=os.environ.get('SENTRY_ENVIRONMENT', 'production' if not DEBUG else 'development'),
         release=os.environ.get('SENTRY_RELEASE'),
         send_default_pii=False,
+        include_local_variables=False,
+        max_request_body_size='never',
+        before_send=before_send,
         traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0')),
     )
+
+# Autoscale instances have ephemeral disks. Console output reaches the platform
+# logs even when Sentry is not configured; errors also become Sentry events.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {'safe': {
+        '()': 'survivor.observability.SafeFormatter',
+        'format': '{asctime} {levelname} {name} {message}',
+        'style': '{',
+    }},
+    'handlers': {'console': {'class': 'logging.StreamHandler', 'formatter': 'safe'}},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {
+        'survivorPool': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-#s%d)#q*$p#z!lofhyaz=3wi7ra&p5lin5_rhsnbie_j2wqam8')
