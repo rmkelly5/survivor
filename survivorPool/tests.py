@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.management import call_command
 from django.test import RequestFactory, TestCase
+from django.urls import reverse
 from django.utils import timezone
 import datetime
 from unittest.mock import patch
@@ -745,6 +746,55 @@ class UtilsTests(TestCase):
         self.assertEqual(rows['regular-player']['favorite_loss_count'], 0)
         self.assertEqual(rows['regular-player']['standard_loss_count'], 1)
         self.assertEqual(rows['regular-player']['pot_contribution'], 60)
+
+    def test_leaderboard_record_ties_rank_lower_contribution_first(self):
+        expensive = User.objects.create_user(username='alpha-expensive')
+        cheaper = User.objects.create_user(username='zeta-cheaper')
+        team = Team.objects.create(team_name='Bills')
+        for user, favorite in ((expensive, True), (cheaper, False)):
+            Pick.objects.create(user_name=user, team=team, week=1, is_win=True)
+            Pick.objects.create(
+                user_name=user, team=team, week=2, is_win=False,
+                favorite_loss_override=favorite,
+            )
+
+        rows = build_leaderboard_rows()
+
+        self.assertEqual([row['username'] for row in rows], ['zeta-cheaper', 'alpha-expensive'])
+        self.assertEqual([row['pot_contribution'] for row in rows], [60, 75])
+        self.client.force_login(cheaper)
+        response = self.client.get(reverse('league_leaderboard'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertLess(content.index('zeta-cheaper'), content.index('alpha-expensive'))
+        self.assertContains(response, 'Ranked by record, then lowest contribution.')
+
+    def test_leaderboard_keeps_record_primary_before_contribution(self):
+        better = User.objects.create_user(username='zeta-better-record')
+        worse = User.objects.create_user(username='alpha-worse-record')
+        team = Team.objects.create(team_name='Bills')
+        for user in (better, worse):
+            Pick.objects.create(user_name=user, team=team, week=1, is_win=True)
+        Pick.objects.create(
+            user_name=better, team=team, week=2, is_win=False,
+            favorite_loss_override=True,
+        )
+        for week in (2, 3):
+            Pick.objects.create(
+                user_name=worse, team=team, week=week, is_win=False,
+                favorite_loss_override=False,
+            )
+
+        rows = build_leaderboard_rows()
+
+        self.assertEqual([row['username'] for row in rows], ['zeta-better-record', 'alpha-worse-record'])
+        self.assertEqual([row['pot_contribution'] for row in rows], [75, 70])
+
+    def test_leaderboard_equal_record_and_contribution_have_stable_order(self):
+        User.objects.create_user(username='zeta')
+        User.objects.create_user(username='alpha')
+
+        self.assertEqual([row['username'] for row in build_leaderboard_rows()], ['alpha', 'zeta'])
 
 
 class OddsCommandTests(TestCase):

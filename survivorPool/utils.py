@@ -194,7 +194,12 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
                 + favorite_loss_count * favorite_loss_amount
             ),
         })
-    return rows
+    return sorted(rows, key=lambda row: (
+        -row['win_count'],
+        row['loss_count'],
+        row['pot_contribution'],
+        row['username'],
+    ))
 
 
 def get_league_member_usernames() -> list[str]:
