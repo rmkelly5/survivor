@@ -6,3 +6,4 @@
 - [Calendar-independent browser tests](browser-test-calendar.md) — browser fixtures must work throughout the season; never alter production week defaults to satisfy dated tests.
 - [League cutover](league-cutover.md) — Google Sheets runs the current league; a staff upload is intended to replace pilot picks at cutover.
 - [League ranking](league-ranking.md) — record ranks first; lower contribution breaks record ties, and the user says the final winner has the least contribution.
+- [Biggest-favorite rule](favorite-selection.md) — largest point spread, not moneyline; page-load calculations can change displayed fees without an odds refresh.

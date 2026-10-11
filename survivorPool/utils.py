@@ -115,6 +115,28 @@ def build_picks_grid(max_week: int | None = None) -> dict[str, Any]:
     }
 
 
+def select_biggest_spread_favorites(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Select all tied favorites by points given, never by moneyline.
+
+    Stored spreads are positive magnitudes for favorites, with a separate
+    favorite flag. abs() also handles signed negative favorite spreads.
+    Missing spreads, underdogs, and pick'em games are not candidates.
+    """
+    favorites = [
+        candidate for candidate in candidates
+        if candidate.get('is_favorite')
+        and candidate.get('spread') is not None
+        and abs(candidate['spread']) > 0
+    ]
+    if not favorites:
+        return []
+    largest_spread = max(abs(candidate['spread']) for candidate in favorites)
+    return [
+        candidate for candidate in favorites
+        if abs(candidate['spread']) == largest_spread
+    ]
+
+
 def build_leaderboard_rows() -> list[dict[str, Any]]:
     """Build standings and pot contributions using the configured loss rules."""
     season_settings = SeasonSettings.objects.filter(
@@ -128,33 +150,32 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
         else Decimal('25')
     )
 
-    weekly_moneylines = defaultdict(list)
+    weekly_spreads = defaultdict(list)
     for game in Game.objects.filter(
         season_year=settings.NFL_SEASON_YEAR,
     ).values(
         'week',
         'home_team_id',
-        'home_moneyline',
+        'home_spread',
+        'home_is_favorite',
         'away_team_id',
-        'away_moneyline',
+        'away_spread',
+        'away_is_favorite',
     ):
-        if game['home_moneyline'] is not None:
-            weekly_moneylines[game['week']].append(
-                (game['home_moneyline'], game['home_team_id'])
-            )
-        if game['away_moneyline'] is not None:
-            weekly_moneylines[game['week']].append(
-                (game['away_moneyline'], game['away_team_id'])
-            )
+        for side in ('home', 'away'):
+            weekly_spreads[game['week']].append({
+                'team_id': game[f'{side}_team_id'],
+                'spread': game[f'{side}_spread'],
+                'is_favorite': game[f'{side}_is_favorite'],
+            })
 
-    biggest_favorite_ids = {}
-    for week, teams in weekly_moneylines.items():
-        best_moneyline = min(moneyline for moneyline, _ in teams)
-        biggest_favorite_ids[week] = {
-            team_id
-            for moneyline, team_id in teams
-            if moneyline == best_moneyline
+    biggest_favorite_ids = {
+        week: {
+            candidate['team_id']
+            for candidate in select_biggest_spread_favorites(teams)
         }
+        for week, teams in weekly_spreads.items()
+    }
 
     favorite_losses_by_user = defaultdict(int)
     for pick in Pick.objects.filter(

@@ -50,7 +50,7 @@
     {% if biggest_favorites %}
     <section class="biggest-favorite-banner" aria-labelledby="biggest-favorite-title">
         <div class="biggest-favorite-heading">
-            <span class="biggest-favorite-kicker">Best odds to win</span>
+            <span class="biggest-favorite-kicker">Largest point spread</span>
             <h2 id="biggest-favorite-title">
                 Biggest Favorite{% if biggest_favorites|length > 1 %}s{% endif %} — Week {{ display_week }}
             </h2>
@@ -64,7 +64,7 @@
                      alt="" class="biggest-favorite-logo">
                 {% endif %}
                 <span class="biggest-favorite-name">{{ favorite.team.team_name }}</span>
-                <span class="biggest-favorite-odds">{{ favorite.moneyline }}</span>
+                <span class="biggest-favorite-odds">−{{ favorite.spread|floatformat:"-1" }} points</span>
             </div>
             {% endfor %}
         </div>

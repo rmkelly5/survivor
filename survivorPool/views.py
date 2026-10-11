@@ -24,6 +24,7 @@ from .utils import (
     build_picks_grid,
     get_current_nfl_week,
     is_pick_locked,
+    select_biggest_spread_favorites,
 )
 
 NFL_TEAM_LOGOS = {
@@ -195,25 +196,21 @@ class AddPickView(LoginRequiredMixin, PickWriteTransactionMixin, CreateView):
         return context
 
     def _get_biggest_favorites(self, matchups):
-        teams_with_odds = []
+        candidates = []
         for matchup in matchups:
             for side in ('away', 'home'):
                 team = matchup.get(side)
-                moneyline = matchup.get(f'{side}_moneyline')
-                if team is not None and moneyline is not None:
-                    teams_with_odds.append({
+                if team is not None:
+                    candidates.append({
                         'team': team,
                         'logo': matchup.get(f'{side}_logo', ''),
-                        'moneyline': moneyline,
+                        'spread': matchup.get(f'{side}_spread'),
+                        'is_favorite': matchup.get(f'{side}_is_favorite', False),
                     })
 
-        if not teams_with_odds:
-            return []
-
-        best_moneyline = min(team['moneyline'] for team in teams_with_odds)
         return [
-            team for team in teams_with_odds
-            if team['moneyline'] == best_moneyline
+            dict(candidate, spread=abs(candidate['spread']))
+            for candidate in select_biggest_spread_favorites(candidates)
         ]
 
     def _matchup_from_game(self, game, used_team_ids, logo_url):

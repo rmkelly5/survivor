@@ -82,7 +82,7 @@ class AddPickViewTests(TestCase):
         with patch.object(view, '_get_current_nfl_week', return_value=4):
             self.assertEqual(view._get_display_week(), 4)
 
-    def test_biggest_favorite_uses_lowest_moneyline(self):
+    def test_biggest_favorite_uses_largest_spread(self):
         view = AddPickView()
         bills = Team.objects.create(team_name='Bills')
         dolphins = Team.objects.create(team_name='Dolphins')
@@ -91,6 +91,8 @@ class AddPickViewTests(TestCase):
                 'home': bills,
                 'home_logo': 'bills.png',
                 'home_moneyline': -240,
+                'home_spread': 7.5,
+                'home_is_favorite': True,
                 'away': dolphins,
                 'away_logo': 'dolphins.png',
                 'away_moneyline': 190,
@@ -98,8 +100,8 @@ class AddPickViewTests(TestCase):
         ])
 
         self.assertEqual(
-            [(favorite['team'], favorite['moneyline']) for favorite in favorites],
-            [(bills, -240)],
+            [(favorite['team'], favorite['spread']) for favorite in favorites],
+            [(bills, 7.5)],
         )
 
     def test_biggest_favorite_includes_all_tied_teams(self):
@@ -113,6 +115,8 @@ class AddPickViewTests(TestCase):
                 'home': bills,
                 'home_logo': '',
                 'home_moneyline': -300,
+                'home_spread': 9.5,
+                'home_is_favorite': True,
                 'away': dolphins,
                 'away_logo': '',
                 'away_moneyline': 240,
@@ -120,7 +124,9 @@ class AddPickViewTests(TestCase):
             {
                 'home': chiefs,
                 'home_logo': '',
-                'home_moneyline': -300,
+                'home_moneyline': -250,
+                'home_spread': 9.5,
+                'home_is_favorite': True,
                 'away': raiders,
                 'away_logo': '',
                 'away_moneyline': 250,
@@ -132,7 +138,7 @@ class AddPickViewTests(TestCase):
             [bills, chiefs],
         )
 
-    def test_biggest_favorite_is_empty_without_moneylines(self):
+    def test_biggest_favorite_is_empty_without_spreads(self):
         view = AddPickView()
         bills = Team.objects.create(team_name='Bills')
 
@@ -141,7 +147,8 @@ class AddPickViewTests(TestCase):
                 {
                     'home': bills,
                     'home_logo': '',
-                    'home_moneyline': None,
+                    'home_moneyline': -900,
+                    'home_is_favorite': True,
                     'away': None,
                     'away_logo': '',
                     'away_moneyline': None,
@@ -705,6 +712,8 @@ class UtilsTests(TestCase):
             away_team=raiders,
             home_moneyline=-300,
             away_moneyline=250,
+            home_spread=9.5,
+            home_is_favorite=True,
         )
         Game.objects.create(
             season_year=2026,
@@ -713,6 +722,8 @@ class UtilsTests(TestCase):
             away_team=dolphins,
             home_moneyline=-300,
             away_moneyline=240,
+            home_spread=9.5,
+            home_is_favorite=True,
         )
         Pick.objects.create(
             user_name=favorite_player,
