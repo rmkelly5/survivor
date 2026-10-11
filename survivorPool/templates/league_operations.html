@@ -129,8 +129,8 @@
         <span class="ops-command-state">Market data</span>
       </div>
       <h2>Refresh odds</h2>
-      <p>Pull current lines and align them to the schedule already on file.</p>
-      <div class="ops-consequence"><strong>Writes:</strong> spreads, moneylines, and favorites.</div>
+      <p>Pull current lines for games that have not started. Games already underway or finished keep their previously saved odds, even if they no longer appear in the odds feed.</p>
+      <div class="ops-consequence"><strong>Writes:</strong> spreads, moneylines, and favorites for unstarted games only.</div>
       <form method="post" class="ops-action-form">
         {% csrf_token %}
         <input type="hidden" name="action" value="odds">

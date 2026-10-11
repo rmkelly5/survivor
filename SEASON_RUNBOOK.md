@@ -51,9 +51,11 @@ python manage.py fetch_nfl_odds --year 2026 --week WEEK
 ```
 
 Then verify the Game and Team counts for that week and review the Make a Pick
-page. Both commands are safe to rerun: existing schedule records are updated,
-and the selected week's team matchup fields are refreshed before odds are
-loaded.
+page. You can refresh odds again on Sunday: the refresh updates only games that
+have not kicked off. It preserves the stored Game and Team odds for games that
+have started (including Thursday night), even if those games are absent from
+the odds feed. Schedule sync is a separate operation; it is not run by odds
+refresh.
 
 ## After games finish
 

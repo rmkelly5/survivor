@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.utils import timezone
 from survivorPool.models import Game, Team
 from datetime import datetime
 import os
@@ -49,6 +50,12 @@ def get_espn_week_matchups(year, week):
         matchups[(home_name, away_name)] = kickoff
 
     return matchups
+
+
+def game_has_started(*kickoffs):
+    """Never replace pre-kickoff odds with in-play or post-game prices."""
+    now = timezone.now()
+    return any(kickoff is not None and kickoff <= now for kickoff in kickoffs)
 
 
 class Command(BaseCommand):
@@ -910,15 +917,8 @@ class Command(BaseCommand):
             games = response.json()
             self.stdout.write(f'Found {len(games)} games')
 
-            Team.objects.filter(current_week=week).update(
-                opponent=None,
-                game_time=None,
-                spread=None,
-                moneyline=None,
-                is_home=None,
-                current_week=None,
-                is_favorite=False,
-            )
+            # Do not clear the week's Team cache. Played games commonly disappear
+            # from the odds feed, and their Wednesday odds must remain intact.
 
             updated_count = 0
             skipped_count = 0
@@ -969,6 +969,18 @@ class Command(BaseCommand):
                     home_team=home_team,
                     away_team=away_team,
                 ).first()
+                kickoffs = (
+                    stored_game.game_time if stored_game else None,
+                    scheduled_kickoff,
+                    commence_time_utc,
+                )
+                if game_has_started(*kickoffs):
+                    self.stdout.write(
+                        f'Preserved pre-kickoff odds: {away_team_name} @ '
+                        f'{home_team_name} (game has started).'
+                    )
+                    skipped_count += 1
+                    continue
                 # A manual refresh must never erase usable odds. Start with the
                 # stored values, then replace only fields the chosen book returned.
                 home_spread = stored_game.home_spread if stored_game else None
@@ -1008,6 +1020,16 @@ class Command(BaseCommand):
                                 moneyline_home = outcome['price']
                             elif outcome['name'] == game['away_team']:
                                 moneyline_away = outcome['price']
+
+                # A game may have kicked off while the feed was being processed.
+                # Recheck immediately before any Team or Game writes.
+                if game_has_started(*kickoffs):
+                    self.stdout.write(
+                        f'Preserved pre-kickoff odds: {away_team_name} @ '
+                        f'{home_team_name} (game has started).'
+                    )
+                    skipped_count += 1
+                    continue
 
                 home_team.opponent = away_team_name
                 home_team.game_time = commence_time
