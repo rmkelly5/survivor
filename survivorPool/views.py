@@ -23,7 +23,9 @@ from .utils import (
     build_leaderboard_rows,
     build_picks_grid,
     get_current_nfl_week,
+    get_underdog_credit_counts,
     is_pick_locked,
+    loss_credit_summary,
     select_biggest_spread_favorites,
 )
 
@@ -78,12 +80,21 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         picks = list(context['object_list'])
         week = get_current_nfl_week()
+        credits = (
+            get_underdog_credit_counts(user_id=self.request.user.pk)
+            if self.request.user.is_authenticated else {}
+        )
+        record = loss_credit_summary(
+            sum(pick.is_win is False for pick in picks),
+            credits.get(self.request.user.pk, 0),
+        )
         context.update({
             'current_week': week,
             'season_year': settings.NFL_SEASON_YEAR,
             'current_pick': next((pick for pick in picks if pick.week == week), None),
             'wins': sum(pick.is_win is True for pick in picks),
-            'losses': sum(pick.is_win is False for pick in picks),
+            'losses': record['loss_count'],
+            **record,
             'pending': sum(pick.is_win is None for pick in picks),
         })
         return context

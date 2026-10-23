@@ -73,9 +73,9 @@
         </tbody>
         <tfoot>
             <tr>
-                <td class="picks-summary-label picks-sticky">Losses</td>
+                <td class="picks-summary-label picks-sticky">Adjusted losses</td>
                 {% for summary in grid_summary %}
-                <td class="picks-summary-cell">{{ summary.losses }}</td>
+                <td class="picks-summary-cell">{{ summary.losses|floatformat:"-1" }}</td>
                 {% endfor %}
             </tr>
             <tr>

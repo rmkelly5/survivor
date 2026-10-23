@@ -27,10 +27,11 @@
         </div>
         <div class="season-stats">
             <div><span>Wins</span><strong>{{ wins }}</strong></div>
-            <div><span>Losses</span><strong>{{ losses }}</strong></div>
+            <div><span>Adjusted losses</span><strong>{{ losses|floatformat:"-1" }}</strong></div>
             <div><span>Pending</span><strong>{{ pending }}</strong></div>
         </div>
     </section>
+    <p class="text-muted">Actual losses: {{ actual_loss_count }} · Loss credits earned: {{ loss_credit_total|floatformat:"-1" }} · Banked credits: {{ banked_loss_credits|floatformat:"-1" }}. Credits adjust your record only, not your contribution.</p>
     <div class="section-heading"><h2>Your pick history</h2><span class="text-muted">Most recent first</span></div>
 
     {% if object_list %}

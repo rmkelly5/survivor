@@ -137,6 +137,53 @@ def select_biggest_spread_favorites(candidates: list[dict[str, Any]]) -> list[di
     ]
 
 
+def get_underdog_credit_counts(games=None, user_id=None) -> dict[int, int]:
+    """Count qualifying wins; odds store the favorite's spread as a magnitude.
+
+    The opposite team is the underdog. Never infer a point spread from moneyline
+    odds, and never award a credit for a pending, losing, or missed pick.
+    """
+    if games is None:
+        games = Game.objects.filter(
+            season_year=settings.NFL_SEASON_YEAR,
+        ).values(
+            'week', 'home_team_id', 'away_team_id',
+            'home_spread', 'away_spread', 'home_is_favorite', 'away_is_favorite',
+        )
+    qualifying_picks = set()
+    for game in games:
+        for side, opponent in (('home', 'away'), ('away', 'home')):
+            spread = game[f'{opponent}_spread']
+            if (
+                not game[f'{side}_is_favorite']
+                and game[f'{opponent}_is_favorite']
+                and spread is not None
+                and abs(spread) >= Decimal('5')
+            ):
+                qualifying_picks.add((game['week'], game[f'{side}_team_id']))
+
+    winners = Pick.objects.filter(is_win=True, missed_deadline=False)
+    if user_id is not None:
+        winners = winners.filter(user_name_id=user_id)
+    credits = defaultdict(int)
+    for pick in winners.values('user_name_id', 'team_id', 'week'):
+        if (pick['week'], pick['team_id']) in qualifying_picks:
+            credits[pick['user_name_id']] += 1
+    return credits
+
+
+def loss_credit_summary(actual_losses: int, credit_count: int) -> dict[str, Any]:
+    """Apply record-only credits, banking excess without refunding loss fees."""
+    credits = Decimal(credit_count) / Decimal('2')
+    return {
+        'actual_loss_count': actual_losses,
+        'loss_count': max(Decimal('0'), Decimal(actual_losses) - credits),
+        'loss_credit_count': credit_count,
+        'loss_credit_total': credits,
+        'banked_loss_credits': max(Decimal('0'), credits - Decimal(actual_losses)),
+    }
+
+
 def build_leaderboard_rows() -> list[dict[str, Any]]:
     """Build standings and pot contributions using the configured loss rules."""
     season_settings = SeasonSettings.objects.filter(
@@ -151,7 +198,7 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
     )
 
     weekly_spreads = defaultdict(list)
-    for game in Game.objects.filter(
+    games = list(Game.objects.filter(
         season_year=settings.NFL_SEASON_YEAR,
     ).values(
         'week',
@@ -161,7 +208,8 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
         'away_team_id',
         'away_spread',
         'away_is_favorite',
-    ):
+    ))
+    for game in games:
         for side in ('home', 'away'):
             weekly_spreads[game['week']].append({
                 'team_id': game[f'{side}_team_id'],
@@ -176,6 +224,7 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
         }
         for week, teams in weekly_spreads.items()
     }
+    credit_counts = get_underdog_credit_counts(games=games)
 
     favorite_losses_by_user = defaultdict(int)
     for pick in Pick.objects.filter(
@@ -206,7 +255,7 @@ def build_leaderboard_rows() -> list[dict[str, Any]]:
         rows.append({
             'username': user.username,
             'win_count': user.win_count or 0,
-            'loss_count': loss_count,
+            **loss_credit_summary(loss_count, credit_counts.get(user.id, 0)),
             'standard_loss_count': standard_loss_count,
             'favorite_loss_count': favorite_loss_count,
             'pot_contribution': (
