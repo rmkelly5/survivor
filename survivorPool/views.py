@@ -192,6 +192,7 @@ class AddPickView(LoginRequiredMixin, PickWriteTransactionMixin, CreateView):
 
         context['matchups'] = matchups
         context['biggest_favorites'] = biggest_favorites
+        context['dog_pound'] = self._get_dog_pound(matchups)
         context['used_team_ids'] = used_team_ids
         context['display_week'] = display_week
         context['current_week'] = self._get_current_nfl_week()
@@ -231,6 +232,34 @@ class AddPickView(LoginRequiredMixin, PickWriteTransactionMixin, CreateView):
                     magnitude = magnitude.rstrip('0').rstrip('.')
                 display = f"{'-' if favorite else '+'}{magnitude}"
             matchup[f'{side}_display_spread'] = display
+
+    @staticmethod
+    def _get_dog_pound(matchups):
+        """Use the same saved favorite spread that determines half-loss credits."""
+        underdogs = []
+        for matchup in matchups:
+            for side, opponent in (('home', 'away'), ('away', 'home')):
+                team = matchup.get(side)
+                spread = matchup.get(f'{opponent}_spread')
+                if (
+                    team is not None
+                    and not matchup.get(f'{side}_is_favorite')
+                    and matchup.get(f'{opponent}_is_favorite')
+                    and spread is not None
+                    and abs(spread) >= 5
+                ):
+                    magnitude = format(abs(spread), 'f')
+                    if '.' in magnitude:
+                        magnitude = magnitude.rstrip('0').rstrip('.')
+                    underdogs.append({
+                        'team': team,
+                        'logo': matchup.get(f'{side}_logo', ''),
+                        'display_spread': f'+{magnitude}',
+                        'moneyline': matchup.get(f'{side}_moneyline'),
+                        'started': matchup.get(f'{side}_started', False),
+                        'picked': matchup.get(f'{side}_picked', False),
+                    })
+        return underdogs
 
     def _get_biggest_favorites(self, matchups):
         candidates = []

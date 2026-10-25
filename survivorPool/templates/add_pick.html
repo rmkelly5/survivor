@@ -71,6 +71,44 @@
     </section>
     {% endif %}
 
+    <details class="dog-pound">
+        <summary class="dog-pound-summary">
+            <span class="dog-pound-title">Dog Pound</span>
+            <span class="dog-pound-count">{{ dog_pound|length }} {% if dog_pound|length == 1 %}team{% else %}teams{% endif %}</span>
+        </summary>
+        <div class="dog-pound-content">
+            <p class="dog-pound-explainer">
+                Underdogs by 5 or more points. A winning pick here earns half-loss credit without changing your contribution.
+            </p>
+            {% if dog_pound %}
+            <ul class="dog-pound-list" aria-label="Week {{ display_week }} underdog teams">
+                {% for dog in dog_pound %}
+                <li class="dog-pound-team{% if dog.started or dog.picked %} dog-pound-team--status{% endif %}">
+                    {% if dog.logo %}
+                    <img src="{{ dog.logo }}" loading="lazy" decoding="async"
+                         onerror="this.style.display='none'"
+                         alt="" class="dog-pound-logo">
+                    {% endif %}
+                    <span class="dog-pound-name">{{ dog.team.team_name }}</span>
+                    <span class="dog-pound-odds" title="Point spread">{{ dog.display_spread }}</span>
+                    {% if dog.moneyline != None %}
+                    <span class="dog-pound-moneyline" title="Moneyline">{% if dog.moneyline > 0 %}+{% endif %}{{ dog.moneyline }}</span>
+                    {% endif %}
+                    {% if dog.started %}
+                    <span class="dog-pound-status">Game started</span>
+                    {% elif dog.picked %}
+                    <span class="dog-pound-status">Already picked</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="dog-pound-empty">No teams qualify as 5+ point underdogs this week.</p>
+            {% endif %}
+            <p class="dog-pound-note">This list is informational. Make your selection from the matchups below.</p>
+        </div>
+    </details>
+
     <p class="text-muted mb-3">Week {{ display_week }} matchups · Select a team below</p>
 
     {% if matchups %}
