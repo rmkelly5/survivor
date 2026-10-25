@@ -178,6 +178,9 @@ class AddPickView(LoginRequiredMixin, PickWriteTransactionMixin, CreateView):
         else:
             matchups = self._matchups_from_teams(display_week, used_team_ids, logo_url)
 
+        for matchup in matchups:
+            self._add_display_spreads(matchup)
+
         biggest_favorites = self._get_biggest_favorites(matchups)
 
         selected_team_id = None
@@ -205,6 +208,29 @@ class AddPickView(LoginRequiredMixin, PickWriteTransactionMixin, CreateView):
             for side in ('away', 'home')
         )
         return context
+
+    @staticmethod
+    def _add_display_spreads(matchup):
+        """Format both sides without changing the stored favorite-only odds."""
+        for side, opponent in (('home', 'away'), ('away', 'home')):
+            spread = matchup.get(f'{side}_spread')
+            favorite = matchup.get(f'{side}_is_favorite', False)
+            if (
+                spread is None
+                and not favorite
+                and matchup.get(f'{opponent}_is_favorite')
+            ):
+                spread = matchup.get(f'{opponent}_spread')
+            if spread is None or matchup.get(side) is None:
+                display = None
+            elif spread == 0:
+                display = '0'
+            else:
+                magnitude = format(abs(spread), 'f')
+                if '.' in magnitude:
+                    magnitude = magnitude.rstrip('0').rstrip('.')
+                display = f"{'-' if favorite else '+'}{magnitude}"
+            matchup[f'{side}_display_spread'] = display
 
     def _get_biggest_favorites(self, matchups):
         candidates = []
