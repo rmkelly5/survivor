@@ -9,3 +9,4 @@
 - [Biggest-favorite rule](favorite-selection.md) — largest point spread, not moneyline; page-load calculations can change displayed fees without an odds refresh.
 - [Midweek odds refresh](midweek-odds-refresh.md) — Wednesday baseline and optional Sunday refresh; preserve pregame lines for games already kicked off.
 - [Underdog credits](underdog-loss-credits.md) — a winning 5+ point underdog earns a normal win and half-loss record credit; pot contributions stay unchanged.
+- [Error diagnosis](error-diagnosis.md) — for unexplained return-visit 500s, gather logging evidence before applying speculative fixes.

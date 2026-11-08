@@ -109,6 +109,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'survivor.request_logging.RequestDiagnosticsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -118,6 +119,29 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'server_error': {'()': 'survivor.request_logging.ServerErrorFormatter'},
+    },
+    'handlers': {
+        'server_error_console': {
+            'class': 'logging.StreamHandler',
+            'level': 'ERROR',
+            'formatter': 'server_error',
+            'stream': 'ext://sys.stderr',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['server_error_console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
 
 ROOT_URLCONF = 'survivor.urls'
 
