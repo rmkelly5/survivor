@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'pick_distribution.css' %}">
 {% if user.is_authenticated %}
 
 <div class="picks-header">
@@ -21,6 +23,48 @@
     <select name="week" id="board-week" class="form-select">{% for week in week_choices %}<option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>Week {{ week }}{% if week == current_nfl_week %} · Current{% endif %}</option>{% endfor %}</select>
     <button class="btn btn-secondary" type="submit">Show picks</button>
 </form>
+
+<section class="pick-distribution" aria-labelledby="pick-distribution-title">
+    <div class="pick-distribution-heading">
+        <div>
+            <p class="pick-distribution-kicker">League snapshot · Week {{ selected_week }}</p>
+            <h2 id="pick-distribution-title">Pick distribution</h2>
+            <p class="pick-distribution-note">Counts include revealed picks only. Selections reveal at kickoff.</p>
+        </div>
+        <div class="pick-distribution-totals" aria-label="Pick status totals">
+            <span><strong>{{ pick_distribution.revealed_count }}</strong> revealed</span>
+            <span><strong>{{ pick_distribution.unrevealed_count }}</strong> Not revealed / no pick</span>
+            {% if pick_distribution.missed_count > 0 %}
+            <span class="pick-distribution-missed"><strong>{{ pick_distribution.missed_count }}</strong> missed deadline</span>
+            {% endif %}
+            <span><strong>{{ pick_distribution.total_count }}</strong> total</span>
+        </div>
+    </div>
+
+    {% if pick_distribution.teams %}
+    <div class="pick-distribution-chart" role="group" aria-label="Revealed picks by team for week {{ selected_week }}">
+        <div class="pick-distribution-axis" aria-hidden="true">
+            <span>0</span>
+            <span>{{ pick_distribution.teams.0.count }}</span>
+        </div>
+        <ol class="pick-distribution-list">
+            {% for team in pick_distribution.teams %}
+            <li class="pick-distribution-row">
+                <span class="pick-distribution-team">{{ team.team }}</span>
+                <span class="pick-distribution-track" aria-hidden="true">
+                    <span class="pick-distribution-bar" style="width: {{ team.bar_percent }}%;"></span>
+                </span>
+                <span class="pick-distribution-count">{{ team.count }}</span>
+            </li>
+            {% endfor %}
+        </ol>
+        <p class="pick-distribution-axis-caption">Revealed picks per team</p>
+    </div>
+    {% else %}
+    <p class="pick-distribution-empty">No team picks have been revealed for this week yet.</p>
+    {% endif %}
+</section>
+
 {% if current_week_cards %}
 <div class="week-summary-panel mb-4">
     <h2 class="h5 mb-2">Week {{ selected_week }}</h2>

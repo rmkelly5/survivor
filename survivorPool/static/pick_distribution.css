@@ -1,0 +1,222 @@
+.pick-distribution {
+    --distribution-ink: #152238;
+    --distribution-muted: #62718a;
+    --distribution-line: #dce4ef;
+    --distribution-track: #e8edf4;
+    --distribution-accent: #1d4ed8;
+    margin: 1rem 0 1.5rem;
+    padding: clamp(1rem, 2.5vw, 1.5rem);
+    border: 1px solid var(--distribution-line);
+    border-top: 3px solid var(--distribution-accent);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(13, 27, 42, 0.06);
+}
+
+.pick-distribution-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.25rem;
+    margin-bottom: 1.15rem;
+}
+
+.pick-distribution-kicker {
+    margin: 0 0 0.35rem;
+    color: var(--distribution-accent);
+    font-size: 0.69rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.pick-distribution h2 {
+    margin: 0;
+    color: var(--distribution-ink);
+    font-size: clamp(1.2rem, 2vw, 1.5rem);
+    letter-spacing: -0.035em;
+}
+
+.pick-distribution-note {
+    margin: 0.35rem 0 0;
+    color: var(--distribution-muted);
+    font-size: 0.84rem;
+}
+
+.pick-distribution-totals {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    max-width: 440px;
+}
+
+.pick-distribution-totals span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.32rem;
+    padding: 0.33rem 0.55rem;
+    border: 1px solid var(--distribution-line);
+    border-radius: 4px;
+    background: #f5f8fc;
+    color: #526078;
+    font-size: 0.73rem;
+    line-height: 1.25;
+}
+
+.pick-distribution-totals strong {
+    color: var(--distribution-ink);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.pick-distribution-totals .pick-distribution-missed {
+    border-color: #f0d5cb;
+    background: #fff7f3;
+    color: #8d4535;
+}
+
+.pick-distribution-missed strong { color: #8d4535; }
+
+.pick-distribution-chart {
+    --label-column: minmax(8rem, 0.78fr);
+    --bar-column: minmax(8rem, 2.3fr);
+    --count-column: 3.25rem;
+}
+
+.pick-distribution-axis {
+    display: grid;
+    grid-template-columns: var(--label-column) var(--bar-column) var(--count-column);
+    gap: 0.65rem;
+    margin: 0 0 0.35rem;
+    color: var(--distribution-muted);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.pick-distribution-axis span:first-child {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+}
+
+.pick-distribution-axis span:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+}
+
+.pick-distribution-list {
+    display: grid;
+    gap: 0.52rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pick-distribution-row {
+    display: grid;
+    grid-template-columns: var(--label-column) var(--bar-column) var(--count-column);
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 1.45rem;
+}
+
+.pick-distribution-team {
+    min-width: 0;
+    color: var(--distribution-ink);
+    font-size: 0.86rem;
+    font-weight: 650;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.pick-distribution-track {
+    position: relative;
+    display: block;
+    height: 0.7rem;
+    overflow: hidden;
+    border-left: 1px solid #8797ad;
+    border-right: 1px solid #c9d4e2;
+    background-color: var(--distribution-track);
+    background-image: linear-gradient(to right, transparent calc(100% - 1px), rgba(108, 127, 151, 0.2) calc(100% - 1px));
+}
+
+.pick-distribution-bar {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 0 3px 3px 0;
+    background: var(--distribution-accent);
+}
+
+.pick-distribution-count {
+    color: var(--distribution-ink);
+    font-size: 0.9rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.pick-distribution-axis-caption {
+    margin: 0.55rem 3.9rem 0 0;
+    color: var(--distribution-muted);
+    font-size: 0.68rem;
+    text-align: center;
+}
+
+.pick-distribution-empty {
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border: 1px dashed #c7d3e2;
+    border-radius: 6px;
+    background: #f7f9fc;
+    color: #526078;
+    font-size: 0.87rem;
+}
+
+@media (max-width: 640px) {
+    .pick-distribution-heading {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .pick-distribution-totals {
+        justify-content: flex-start;
+        gap: 0.35rem;
+    }
+
+    .pick-distribution-totals span {
+        font-size: 0.7rem;
+    }
+
+    .pick-distribution-chart {
+        --label-column: minmax(5.25rem, 0.9fr);
+        --bar-column: minmax(3rem, 1.5fr);
+        --count-column: 2.35rem;
+    }
+
+    .pick-distribution-axis,
+    .pick-distribution-row {
+        gap: 0.45rem;
+    }
+
+    .pick-distribution-team { font-size: 0.79rem; }
+    .pick-distribution-count { font-size: 0.84rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .pick-distribution-bar {
+        animation: pick-distribution-enter 420ms ease-out both;
+        transform-origin: left center;
+    }
+}
+
+@keyframes pick-distribution-enter {
+    from { transform: scaleX(0.72); opacity: 0.65; }
+    to { transform: scaleX(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pick-distribution-bar { animation: none; }
+}
