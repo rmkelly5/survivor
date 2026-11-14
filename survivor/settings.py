@@ -178,7 +178,11 @@ _db_url = os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL')
 
 if _db_url:
     DATABASES = {
-        'default': dj_database_url.parse(_db_url, conn_max_age=600)
+        # Neon can close idle connections before Django's reuse window ends.
+        # Check the connection before its first database use in each request.
+        'default': dj_database_url.parse(
+            _db_url, conn_max_age=600, conn_health_checks=True,
+        )
     }
 elif os.environ.get('PGHOST'):
     DATABASES = {
