@@ -46,7 +46,7 @@ class PickDistributionTests(TestCase):
         with patch('survivorPool.views.get_current_nfl_week', return_value=3):
             return self.client.get(reverse('allPicks'), {'week': week})
 
-    def test_counts_use_selected_week_and_match_visible_cards(self):
+    def test_counts_use_selected_week_and_preserve_full_grid_without_cards(self):
         response = self.page()
         self.assertEqual(response.status_code, 200)
         distribution = response.context['pick_distribution']
@@ -63,6 +63,10 @@ class PickDistributionTests(TestCase):
             + distribution['missed_count'], distribution['total_count'],
         )
         self.assertContains(response, 'Pick distribution')
+        self.assertContains(response, 'Full Pick Grid')
+        self.assertContains(response, 'class="picks-table"')
+        self.assertNotContains(response, 'week-summary-panel')
+        self.assertNotContains(response, 'week-summary-card')
         self.assertContains(response, 'style="width: 50%;"')
         self.assertContains(response, 'Selections reveal at kickoff.')
         self.assertNotContains(response, 'Dolphins')

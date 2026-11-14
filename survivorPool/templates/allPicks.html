@@ -65,23 +65,6 @@
     {% endif %}
 </section>
 
-{% if current_week_cards %}
-<div class="week-summary-panel mb-4">
-    <h2 class="h5 mb-2">Week {{ selected_week }}</h2>
-    <div class="week-summary-cards">
-        {% for card in current_week_cards %}
-        <div class="week-summary-card picks-cell--{{ card.status|lower }}">
-            <span class="week-summary-player">{{ card.player }}{% if card.player == user.username %} <small>(you)</small>{% endif %}</span>
-            <span class="week-summary-team">{% if card.missed_deadline %}No pick recorded{% elif card.team == "-" %}Not revealed{% else %}{{ card.team }}{% endif %}</span>
-            {% if card.status %}
-            <span class="picks-badge {{ card.status|lower }}">{% if card.status == "TBD" %}Pending{% else %}{{ card.status|title }}{% endif %}</span>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
 {% if rows %}
 <h2 class="h5 mb-2">Full Pick Grid</h2>
 <p class="text-muted small">Scroll sideways for every player. The week column stays in place.</p>
