@@ -1,4 +1,5 @@
 import datetime
+from collections import Counter
 import io
 
 from django.conf import settings
@@ -479,6 +480,29 @@ def all_picks_view(request):
                 'missed_deadline': cell.get('missed_deadline', False),
             })
 
+    team_counts = Counter(
+        card['team'] for card in current_week_cards
+        if card['team'] != '-' and not card['missed_deadline']
+    )
+    largest_count = max(team_counts.values(), default=0)
+    pick_distribution = {
+        'teams': [
+            {
+                'team': team,
+                'count': count,
+                'bar_percent': count * 100 // largest_count,
+            }
+            for team, count in sorted(team_counts.items(), key=lambda item: (-item[1], item[0]))
+        ],
+        'revealed_count': sum(team_counts.values()),
+        'unrevealed_count': sum(
+            card['team'] == '-' and not card['missed_deadline']
+            for card in current_week_cards
+        ),
+        'missed_count': sum(card['missed_deadline'] for card in current_week_cards),
+        'total_count': len(current_week_cards),
+    }
+
     return render(request, 'allPicks.html', {
         'players': grid['players'],
         'rows': grid['rows'],
@@ -487,6 +511,7 @@ def all_picks_view(request):
         'selected_week': selected_week,
         'week_choices': range(1, 19),
         'current_week_cards': current_week_cards,
+        'pick_distribution': pick_distribution,
         'season_year': settings.NFL_SEASON_YEAR,
     })
 
